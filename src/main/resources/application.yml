@@ -5,23 +5,23 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/tierify
-    username: postgres
-    password: password
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${JPA_FORMAT_SQL}
         jdbc:
           lob:
             non_contextual_creation: true
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
   security:
     oauth2:
       client:
@@ -30,7 +30,7 @@ spring:
             client-id: ${SPOTIFY_CLIENT_ID}
             client-secret: ${SPOTIFY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: ${OAUTH2_REDIRECT_URI}
             scope: user-read-private,user-read-email,user-top-read
         provider:
           spotify:
@@ -42,3 +42,7 @@ spring:
 spotify:
   api:
     base-url: https://api.spotify.com/v1
+  security:
+    token-url: https://accounts.spotify.com/api/token
+    client-id: ${SPOTIFY_CLIENT_ID}
+    client-secret: ${SPOTIFY_CLIENT_SECRET}

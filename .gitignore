@@ -45,3 +45,6 @@ out/
 build_output.txt
 test_*.txt
 classes_*.txt
+
+# Environment variables
+.env

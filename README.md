@@ -73,16 +73,50 @@
 
 ## 🚀 실행 방법 (Setup & Run)
 
-1. **Prerequisites**:
-    * PostgreSQL (`localhost:5432`, db: `tierify`)
-    * Redis (`localhost:6379`)
-2. **Environment Variables**:
-    * `SPOTIFY_CLIENT_ID`
-    * `SPOTIFY_CLIENT_SECRET`
-3. **Run**:
-   ```bash
-   ./gradlew bootRun
-   ```
+### 1. Prerequisites
+
+다음 서비스들이 실행 중이어야 합니다:
+- **PostgreSQL** (localhost:5432)
+- **Redis** (localhost:6379)
+
+### 2. Environment Configuration
+
+프로젝트 루트에 `.env` 파일을 생성하고 환경변수를 설정합니다.
+
+```bash
+# .env.example을 복사하여 시작
+cp .env.example .env
+```
+
+#### 필수 환경 변수
+
+```.env
+# Database
+DATABASE_URL=jdbc:postgresql://localhost:5432/tierify
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=your_password
+
+# JPA
+JPA_DDL_AUTO=update
+JPA_FORMAT_SQL=true
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# OAuth2
+OAUTH2_REDIRECT_URI=http://localhost:8080/login/oauth2/code/spotify
+
+# Spotify API (https://developer.spotify.com/dashboard 에서 발급)
+SPOTIFY_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_SECRET=your_client_secret
+```
+
+### 3. Run
+
+```bash
+./gradlew bootRun
+```
 
 ---
 
