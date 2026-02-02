@@ -32,3 +32,10 @@ spotify:
     token-url: https://accounts.spotify.com/api/token
     client-id: ${SPOTIFY_CLIENT_ID}
     client-secret: ${SPOTIFY_CLIENT_SECRET}
+
+uri:
+  allowed-front-end-origins:
+    - http://127.0.0.1:*
+    - http://localhost:*
+  success-path: /auth/success
+  default-redirect-origin: http://localhost:3000

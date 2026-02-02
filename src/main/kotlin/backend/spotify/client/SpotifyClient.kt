@@ -90,16 +90,15 @@ class SpotifyClient(
         artistId: String,
         market: String = "KR"
     ): List<SpotifyTrackDTO> {
-        val result =
-            webClient
-                .get()
-                .uri("/artists/$artistId/top-tracks?market=$market")
-                .header(
-                    HttpHeaders.AUTHORIZATION,
-                    "Bearer ${tokenManager.getToken()}"
-                )
-                .retrieve()
-                .awaitBody<SpotifyTopTracksResponseDTO>()
+        val result = webClient
+            .get()
+            .uri("/artists/$artistId/top-tracks?market=$market")
+            .header(
+                HttpHeaders.AUTHORIZATION,
+                "Bearer ${tokenManager.getToken()}"
+            )
+            .retrieve()
+            .awaitBody<SpotifyTopTracksResponseDTO>()
 
         return result.tracks
     }
@@ -136,8 +135,8 @@ class SpotifyClient(
 
     suspend fun getArtistAlbums(
         artistId: String
-    ): List<backend.spotify.dto.internal.SpotifyAlbumDTO> {
-        val allAlbums = mutableListOf<backend.spotify.dto.internal.SpotifyAlbumDTO>()
+    ): List<SpotifyAlbumDTO> {
+        val allAlbums = mutableListOf<SpotifyAlbumDTO>()
         var nextUrl: String? = "/artists/$artistId/albums?include_groups=album,single&limit=50"
 
         while (nextUrl != null) {
@@ -151,8 +150,7 @@ class SpotifyClient(
                     "Bearer ${tokenManager.getToken()}"
                 )
                 .retrieve()
-                .awaitBody<
-                        backend.spotify.dto.internal.SpotifyAlbumResultDTO>()
+                .awaitBody<SpotifyAlbumResultDTO>()
 
             allAlbums.addAll(result.items)
             nextUrl = result.next?.substringAfter(properties.baseUrl)
