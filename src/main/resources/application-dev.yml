@@ -25,3 +25,10 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     backend: DEBUG
+
+uri:
+  allowed-front-end-origins:
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+  success-path: /auth/success
+  default-redirect-origin: http://localhost:3000
