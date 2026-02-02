@@ -4,10 +4,10 @@ import backend.common.constant.Domain
 import org.springframework.http.HttpStatus
 
 enum class ErrorCode(
-        private val domain: Domain,
-        val status: HttpStatus,
-        private val number: Int,
-        val message: String
+    private val domain: Domain,
+    val status: HttpStatus,
+    private val number: Int,
+    val message: String
 ) {
     // Common
     INTERNAL_SERVER(Domain.COMMON, HttpStatus.INTERNAL_SERVER_ERROR, 1, "서버 내부 오류입니다."),
