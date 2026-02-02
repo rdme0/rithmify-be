@@ -4,15 +4,6 @@ spring:
   threads:
     virtual:
       enabled: true
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
   security:
     oauth2:
       client:
@@ -21,7 +12,6 @@ spring:
             client-id: ${SPOTIFY_CLIENT_ID}
             client-secret: ${SPOTIFY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
-            redirect-uri: ${OAUTH2_REDIRECT_URI}
             scope: user-read-private,user-read-email,user-top-read
         provider:
           spotify:

@@ -94,19 +94,23 @@ cp .env.example .env
 # Spring Profile (dev or prod)
 SPRING_PROFILES_ACTIVE=dev
 
-# Database
-DATABASE_URL=jdbc:postgresql://localhost:5432/tierify
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=your_password
+# Development Environment
+DEV_DATABASE_URL=jdbc:postgresql://localhost:5432/tierify
+DEV_DATABASE_USERNAME=postgres
+DEV_DATABASE_PASSWORD=dev_password
+DEV_REDIS_HOST=localhost
+DEV_REDIS_PORT=6379
+DEV_OAUTH2_REDIRECT_URI=http://localhost:8080/login/oauth2/code/spotify
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+# Production Environment
+PROD_DATABASE_URL=jdbc:postgresql://prod-host:5432/tierify_prod
+PROD_DATABASE_USERNAME=tierify_user
+PROD_DATABASE_PASSWORD=prod_password
+PROD_REDIS_HOST=prod-redis-host
+PROD_REDIS_PORT=6379
+PROD_OAUTH2_REDIRECT_URI=https://your-domain.com/login/oauth2/code/spotify
 
-# OAuth2
-OAUTH2_REDIRECT_URI=http://localhost:8080/login/oauth2/code/spotify
-
-# Spotify API (https://developer.spotify.com/dashboard 에서 발급)
+# Spotify API (공통)
 SPOTIFY_CLIENT_ID=your_client_id
 SPOTIFY_CLIENT_SECRET=your_client_secret
 ```

@@ -1,4 +1,19 @@
 spring:
+  datasource:
+    url: ${PROD_DATABASE_URL}
+    username: ${PROD_DATABASE_USERNAME}
+    password: ${PROD_DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${PROD_REDIS_HOST}
+      port: ${PROD_REDIS_PORT}
+  security:
+    oauth2:
+      client:
+        registration:
+          spotify:
+            redirect-uri: ${PROD_OAUTH2_REDIRECT_URI}
   jpa:
     hibernate:
       ddl-auto: validate
