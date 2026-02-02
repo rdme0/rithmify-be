@@ -7,7 +7,7 @@ data class SpotifyApiProperties(val baseUrl: String)
 
 @ConfigurationProperties(prefix = "spring.security.oauth2.client.registration.spotify")
 data class SpotifySecurityProperties(
-        val clientId: String,
-        val clientSecret: String,
-        val tokenUrl: String = "https://accounts.spotify.com/api/token"
+    val clientId: String,
+    val clientSecret: String,
+    val tokenUrl: String = "https://accounts.spotify.com/api/token"
 )

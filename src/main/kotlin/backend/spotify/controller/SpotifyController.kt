@@ -12,7 +12,7 @@ class SpotifyController(private val spotifySearchService: SpotifySearchService) 
 
     @GetMapping("/search")
     suspend fun searchArtist(
-            @RequestParam("q") query: String
+        @RequestParam("q") query: String
     ): ResponseEntity<List<ArtistSearchResponse>> {
         val results = spotifySearchService.searchArtist(query)
         return ResponseEntity.ok(results)
@@ -20,8 +20,8 @@ class SpotifyController(private val spotifySearchService: SpotifySearchService) 
 
     @GetMapping("/artists/{id}/top-tracks")
     suspend fun getArtistTopTracks(
-            @PathVariable id: String,
-            @RequestParam(defaultValue = "false") requirePreview: Boolean
+        @PathVariable id: String,
+        @RequestParam(defaultValue = "false") requirePreview: Boolean
     ): ResponseEntity<List<TrackResponse>> {
         val tracks = spotifySearchService.getArtistTopTracks(id, requirePreview)
         return ResponseEntity.ok(tracks)

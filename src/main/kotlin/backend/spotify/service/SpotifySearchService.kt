@@ -14,20 +14,18 @@ class SpotifySearchService(private val spotifyClient: SpotifyClient) {
 
         return response?.artists?.items?.map { artist ->
             ArtistSearchResponse(
-                    id = artist.id,
-                    name = artist.name,
-                    images =
-                            artist.images.map { img ->
-                                SpotifyImageResponse(
-                                        url = img.url,
-                                        height = img.height,
-                                        width = img.width
-                                )
-                            },
-                    genres = artist.genres
+                id = artist.id,
+                name = artist.name,
+                images = artist.images.map { img ->
+                    SpotifyImageResponse(
+                        url = img.url,
+                        height = img.height,
+                        width = img.width
+                    )
+                },
+                genres = artist.genres
             )
-        }
-                ?: emptyList()
+        } ?: emptyList()
     }
 
     suspend fun getArtistTopTracks(artistId: String, requirePreview: Boolean): List<TrackResponse> {
@@ -35,13 +33,13 @@ class SpotifySearchService(private val spotifyClient: SpotifyClient) {
 
         return tracks.filter { !requirePreview || !it.previewUrl.isNullOrEmpty() }.map { track ->
             TrackResponse(
-                    id = track.id,
-                    name = track.name,
-                    artistName = track.artists.joinToString(", ") { it.name },
-                    albumName = track.album.name,
-                    imageUrl = track.album.images.firstOrNull()?.url,
-                    previewUrl = track.previewUrl,
-                    durationMs = track.durationMs
+                id = track.id,
+                name = track.name,
+                artistName = track.artists.joinToString(", ") { it.name },
+                albumName = track.album.name,
+                imageUrl = track.album.images.firstOrNull()?.url,
+                previewUrl = track.previewUrl,
+                durationMs = track.durationMs
             )
         }
     }
