@@ -1,6 +1,8 @@
 spring:
   application:
     name: tierify-be
+  profiles:
+    default: dev
   threads:
     virtual:
       enabled: true

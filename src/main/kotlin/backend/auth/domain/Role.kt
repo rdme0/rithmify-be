@@ -1,6 +1,6 @@
 package backend.auth.domain
 
-enum class UserRole {
+enum class Role {
     GUEST,
     MEMBER
 }

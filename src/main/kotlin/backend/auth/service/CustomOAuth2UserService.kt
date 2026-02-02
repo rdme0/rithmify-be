@@ -1,8 +1,8 @@
 package backend.auth.service
 
-import backend.auth.domain.User
-import backend.auth.domain.UserRole
-import backend.auth.repository.UserRepository
+import backend.auth.domain.Member
+import backend.auth.domain.Role
+import backend.auth.repository.MemberRepository
 import backend.common.exception.server.InternalServerException
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
@@ -11,35 +11,36 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class CustomOAuth2UserService(
-    private val userRepository: UserRepository
-) : DefaultOAuth2UserService() {
+class CustomOAuth2UserService(private val memberRepository: MemberRepository) :
+        DefaultOAuth2UserService() {
 
     @Transactional
     override fun loadUser(userRequest: OAuth2UserRequest): OAuth2User {
         val oAuth2User = super.loadUser(userRequest)
 
         val attributes = oAuth2User.attributes
-        val spotifyId = attributes["id"] as? String
-            ?: throw InternalServerException(
-                IllegalArgumentException("Missing Spotify User ID")
-            )
+        val spotifyId =
+                attributes["id"] as? String
+                        ?: throw InternalServerException(
+                                IllegalArgumentException("Missing Spotify User ID")
+                        )
         val email = attributes["email"] as? String
         val displayName = attributes["display_name"] as? String
 
-        val user = userRepository.findByProviderId(spotifyId)?.apply {
-            this.email = email
-            this.displayName = displayName
-            this.lastActiveAt = java.time.LocalDateTime.now()
-        }
-            ?: User(
-                providerId = spotifyId,
-                email = email,
-                displayName = displayName,
-                role = UserRole.MEMBER
-            )
+        val member =
+                memberRepository.findByProviderId(spotifyId)?.apply {
+                    this.email = email
+                    this.displayName = displayName
+                    this.lastActiveAt = java.time.LocalDateTime.now()
+                }
+                        ?: Member(
+                                providerId = spotifyId,
+                                email = email,
+                                displayName = displayName,
+                                role = Role.MEMBER
+                        )
 
-        userRepository.save(user)
+        memberRepository.save(member)
 
         return oAuth2User
     }
