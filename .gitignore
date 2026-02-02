@@ -41,3 +41,7 @@ out/
 
 ### env ###
 *.env
+# Build output logs
+build_output.txt
+test_*.txt
+classes_*.txt
