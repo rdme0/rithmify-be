@@ -6,8 +6,6 @@ import backend.spotify.dto.internal.SpotifySearchResponseDTO
 import backend.spotify.dto.internal.SpotifyTrackDTO
 import backend.spotify.dto.internal.SpotifyTrackResultDTO
 import java.time.Duration
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpHeaders
@@ -23,28 +21,13 @@ class SpotifyTokenManager(
         private val properties: SpotifySecurityProperties,
         private val redisTemplate: StringRedisTemplate
 ) {
-    private val mutex = Mutex()
-
     companion object {
         private const val REDIS_KEY_ACCESS_TOKEN = "spotify:access_token"
         private const val TOKEN_BUFFER_SECONDS = 60L
     }
 
     suspend fun getToken(): String {
-        // 1. Try Redis
-        redisTemplate.opsForValue().get(REDIS_KEY_ACCESS_TOKEN)?.let {
-            return it
-        }
-
-        // 2. Refresh with Mutex
-        return mutex.withLock {
-            // Double-check
-            redisTemplate.opsForValue().get(REDIS_KEY_ACCESS_TOKEN)?.let {
-                return@withLock it
-            }
-
-            refreshToken()
-        }
+        return redisTemplate.opsForValue().get(REDIS_KEY_ACCESS_TOKEN) ?: refreshToken()
     }
 
     private suspend fun refreshToken(): String {
