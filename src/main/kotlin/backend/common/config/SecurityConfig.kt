@@ -14,21 +14,21 @@ class SecurityConfig(private val customOAuth2UserService: CustomOAuth2UserServic
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         http
-                .csrf { it.disable() }
-                .authorizeHttpRequests { auth ->
-                    auth.requestMatchers("/api/spotify/**").permitAll()
-                    auth.requestMatchers("/login/**", "/oauth2/**").permitAll()
-                    auth.anyRequest().permitAll()
+            .csrf { it.disable() }
+            .authorizeHttpRequests { auth ->
+                auth.requestMatchers("/api/spotify/**").permitAll()
+                auth.requestMatchers("/login/**", "/oauth2/**").permitAll()
+                auth.anyRequest().permitAll()
+            }
+            .oauth2Login { oauth2 ->
+                oauth2.userInfoEndpoint { userInfo ->
+                    userInfo.userService(customOAuth2UserService)
                 }
-                .oauth2Login { oauth2 ->
-                    oauth2.userInfoEndpoint { userInfo ->
-                        userInfo.userService(customOAuth2UserService)
-                    }
-                    oauth2.defaultSuccessUrl(
-                            "http://localhost:8080/",
-                            true
-                    ) // Todo: Change to Frontend URL
-                }
+                oauth2.defaultSuccessUrl(
+                    "http://localhost:8080/",
+                    true
+                ) // Todo: Change to Frontend URL
+            }
 
         return http.build()
     }
