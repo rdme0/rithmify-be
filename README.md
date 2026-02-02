@@ -91,14 +91,13 @@ cp .env.example .env
 #### 필수 환경 변수
 
 ```.env
+# Spring Profile (dev or prod)
+SPRING_PROFILES_ACTIVE=dev
+
 # Database
 DATABASE_URL=jdbc:postgresql://localhost:5432/tierify
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=your_password
-
-# JPA
-JPA_DDL_AUTO=update
-JPA_FORMAT_SQL=true
 
 # Redis
 REDIS_HOST=localhost
@@ -111,6 +110,18 @@ OAUTH2_REDIRECT_URI=http://localhost:8080/login/oauth2/code/spotify
 SPOTIFY_CLIENT_ID=your_client_id
 SPOTIFY_CLIENT_SECRET=your_client_secret
 ```
+
+#### Profile 설명
+
+- **dev**: 개발 환경 (`application-dev.yml`)
+  - JPA DDL: `update` (자동 스키마 업데이트)
+  - SQL 로깅: 상세 (쿼리 + 파라미터)
+  - 애플리케이션 로그: `DEBUG`
+
+- **prod**: 운영 환경 (`application-prod.yml`)
+  - JPA DDL: `validate` (스키마 검증만, 변경 불가)
+  - SQL 로깅: 최소
+  - 애플리케이션 로그: `INFO`
 
 ### 3. Run
 
