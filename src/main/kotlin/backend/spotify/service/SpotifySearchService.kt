@@ -23,7 +23,8 @@ class SpotifySearchService(private val spotifyClient: SpotifyClient) {
                                         height = img.height,
                                         width = img.width
                                 )
-                            }
+                            },
+                    genres = artist.genres
             )
         }
                 ?: emptyList()
@@ -36,9 +37,11 @@ class SpotifySearchService(private val spotifyClient: SpotifyClient) {
             TrackResponse(
                     id = track.id,
                     name = track.name,
+                    artistName = track.artists.joinToString(", ") { it.name },
                     albumName = track.album.name,
                     imageUrl = track.album.images.firstOrNull()?.url,
-                    previewUrl = track.previewUrl
+                    previewUrl = track.previewUrl,
+                    durationMs = track.durationMs
             )
         }
     }
