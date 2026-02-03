@@ -123,7 +123,7 @@ GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}&sort={field}&
 
 1. **Album Traversal Strategy**
    - 아티스트의 모든 앨범/싱글 정보를 가져옵니다
-   - 각 앨범의 트랙을 **청크 단위로 병렬 조회** (5개씩, 100ms 지연)
+   - 각 앨범의 트랙을 **병렬로** 조회 (Resilience4j RateLimiter로 속도 제어)
    - 중복 제거: **Track ID** 기준으로 필터링
 
 2. **Redis Caching**
@@ -225,7 +225,7 @@ GET /api/spotify/artists/{artistId}/tracks?sort=album&direction=asc
 **Performance Characteristics**
 - **첫 요청**: ~2-5초 (앨범 수, Spotify API 응답 속도에 따라 변동)
 - **캐시 히트**: ~50-100ms (Redis 조회 + 메모리 정렬 + 페이지네이션)
-- **청크 처리**: 5개 앨범씩 병렬 조회 + 100ms 지연 (Rate Limit 방지)
+- **청크 처리**: Resilience4j RateLimiter에 의한 **자동 속도 제어** (초당 요청 제한)
 
 **Status Codes**
 - `200 OK`: 성공 (빈 배열 포함)

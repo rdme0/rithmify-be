@@ -4,6 +4,9 @@ import backend.common.exception.server.InternalServerException
 import backend.spotify.config.SpotifyApiProperties
 import backend.spotify.config.SpotifySecurityProperties
 import backend.spotify.dto.internal.*
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction
+import io.github.resilience4j.ratelimiter.RateLimiter
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpHeaders
@@ -11,6 +14,7 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.awaitBody
 import java.time.Duration
 
@@ -65,11 +69,11 @@ class SpotifyTokenManager(
 class SpotifyClient(
     private val tokenManager: SpotifyTokenManager,
     private val properties: SpotifyApiProperties,
-    private val rateLimiter: io.github.resilience4j.ratelimiter.RateLimiter,
+    private val rateLimiter: RateLimiter,
     private val retry: io.github.resilience4j.retry.Retry
 ) {
     companion object {
-        private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
+        private val logger = KotlinLogging.logger {}
     }
 
     private val webClient = WebClient.builder().baseUrl(properties.baseUrl).build()
@@ -84,10 +88,10 @@ class SpotifyClient(
 
         while (attempt < maxAttempts) {
             try {
-                return io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction(rateLimiter) {
+                return rateLimiter.executeSuspendFunction {
                     block()
                 }
-            } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException.TooManyRequests) {
+            } catch (e: WebClientResponseException.TooManyRequests) {
                 attempt++
                 if (attempt >= maxAttempts) throw e
 
