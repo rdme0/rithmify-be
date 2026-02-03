@@ -66,10 +66,7 @@ class SpotifySearchService(
         }
     }
 
-    suspend fun getArtistTracks(
-        artistId: String,
-        pageable: Pageable
-    ): Page<TrackResponse> {
+    suspend fun getArtistTracks(artistId: String, pageable: Pageable): Page<TrackResponse> {
         val cacheKey = "$CACHE_KEY_PREFIX:$artistId:all_tracks"
         val cachedTracks = redisTemplate.opsForValue().get(cacheKey)
 
@@ -82,20 +79,38 @@ class SpotifySearchService(
             }
             val albums = spotifyClient.getArtistAlbums(artistId)
 
-            // Process albums in parallel (RateLimiter applied in SpotifyClient)
-            val tracks: List<TrackResponse> = coroutineScope {
-                albums
-                    .map { album ->
+            // 1. Collect all Track IDs from albums in parallel (ID only)
+            val trackIds: List<String> =
+                coroutineScope {
+                    albums
+                        .map { album ->
+                            async {
+                                spotifyClient.getAlbumTracks(album.id).map {
+                                    it.id
+                                }
+                            }
+                        }
+                        .awaitAll()
+                        .flatten()
+                }
+                    .distinct() // Deduplicate early (at ID level)
+
+            // 2. Fetch full track details in chunks of 50 (Bulk API)
+            // This ensures we get full album info (including images) and reduce API calls
+            val distinctTracks: List<TrackResponse> = coroutineScope {
+                trackIds.chunked(50)
+                    .map { chunk ->
                         async {
-                            spotifyClient.getAlbumTracks(album.id).map { track ->
+                            spotifyClient.getTracksByIds(chunk).map { track ->
                                 TrackResponse(
                                     id = track.id,
                                     name = track.name,
-                                    artistName = track.artists.joinToString(", ") { it.name },
-                                    albumName = album.name,
-                                    imageUrl = (album.images ?: emptyList())
-                                        .firstOrNull()
-                                        ?.url,
+                                    artistName = track.artists.joinToString(", ") {
+                                        it.name
+                                    },
+                                    albumName = track.album.name,
+                                    imageUrl =
+                                        track.album.images?.firstOrNull()?.url,
                                     previewUrl = track.previewUrl,
                                     durationMs = track.durationMs
                                 )
@@ -105,9 +120,6 @@ class SpotifySearchService(
                     .awaitAll()
                     .flatten()
             }
-
-            // Deduplicate by Track ID (same track can be in multiple albums)
-            val distinctTracks = tracks.distinctBy { it.id }
 
             // Cache the full list for 1 hour
             redisTemplate
@@ -124,9 +136,7 @@ class SpotifySearchService(
         // Apply sorting if specified
         val sortedTracks = if (pageable.sort.isSorted) {
             val sortOrder = pageable.sort.first()
-            val sortField = TrackSortField.fromRequestKey(
-                sortOrder.property
-            )
+            val sortField = TrackSortField.fromRequestKey(sortOrder.property)
 
             if (sortField != null) {
                 val comparator = if (sortOrder.isDescending) {
