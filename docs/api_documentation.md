@@ -21,6 +21,11 @@ GET /api/spotify/search/artists?query={query}
 |-----------|------|----------|-------------|
 | `query` | string | ✅ | 검색어 (아티스트명) |
 
+**Implementation Details**
+- Spotify Search API limit: **30개**
+- 관련성 순으로 정렬된 결과 반환
+- 검색 결과는 캐싱되지 않음 (실시간 검색)
+
 **Response**
 ```json
 [
@@ -40,7 +45,7 @@ GET /api/spotify/search/artists?query={query}
 ```
 
 **Status Codes**
-- `200 OK`: 성공
+- `200 OK`: 성공 (빈 배열 포함)
 - `500 Internal Server Error`: Spotify API 오류
 
 ---
@@ -64,6 +69,12 @@ GET /api/spotify/artists/{artistId}/top-tracks?requirePreview={boolean}
 |-----------|------|----------|---------|-------------|
 | `requirePreview` | boolean | ❌ | `false` | 미리듣기 URL 필수 여부 |
 
+**Implementation Details**
+- Spotify Top Tracks API 사용 (시장: KR)
+- 최대 **10곡** 반환
+- `requirePreview=true` 설정 시 preview URL이 있는 곡만 필터링
+- 검색 결과는 캐싱되지 않음
+
 **Response**
 ```json
 [
@@ -80,7 +91,7 @@ GET /api/spotify/artists/{artistId}/top-tracks?requirePreview={boolean}
 ```
 
 **Status Codes**
-- `200 OK`: 성공
+- `200 OK`: 성공 (빈 배열 포함)
 - `404 Not Found`: 아티스트를 찾을 수 없음
 - `500 Internal Server Error`: Spotify API 오류
 
@@ -92,7 +103,7 @@ GET /api/spotify/artists/{artistId}/top-tracks?requirePreview={boolean}
 
 **Endpoint**
 ```http
-GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}
+GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}&sort={field}&direction={asc|desc}
 ```
 
 **Path Parameters**
@@ -112,8 +123,8 @@ GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}
 
 1. **Album Traversal Strategy**
    - 아티스트의 모든 앨범/싱글 정보를 가져옵니다
-   - 각 앨범의 트랙을 **병렬로** 조회합니다 (Kotlin Coroutines)
-   - 중복 제거: `곡명 + 재생시간` 기준으로 필터링
+   - 각 앨범의 트랙을 **청크 단위로 병렬 조회** (5개씩, 100ms 지연)
+   - 중복 제거: **Track ID** 기준으로 필터링
 
 2. **Redis Caching**
    - 캐시 키: `spotify:artist:{artistId}:all_tracks`
@@ -213,8 +224,8 @@ GET /api/spotify/artists/{artistId}/tracks?sort=album&direction=asc
 
 **Performance Characteristics**
 - **첫 요청**: ~2-5초 (앨범 수, Spotify API 응답 속도에 따라 변동)
-- **캐시 히트**: ~50-100ms (Redis 조회 + 메모리 페이지네이션)
-- **병렬 처리**: 최대 50개 앨범까지 동시 조회 가능
+- **캐시 히트**: ~50-100ms (Redis 조회 + 메모리 정렬 + 페이지네이션)
+- **청크 처리**: 5개 앨범씩 병렬 조회 + 100ms 지연 (Rate Limit 방지)
 
 **Status Codes**
 - `200 OK`: 성공 (빈 배열 포함)
