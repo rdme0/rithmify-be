@@ -13,8 +13,8 @@ class Resilience4jConfig {
     fun spotifyRateLimiter(): RateLimiter {
         val config =
                 RateLimiterConfig.custom()
-                        .limitRefreshPeriod(Duration.ofSeconds(30)) // 30초 윈도우
-                        .limitForPeriod(50) // 30초당 50개 요청 (더 보수적으로 조정)
+                        .limitRefreshPeriod(Duration.ofSeconds(1)) // 1초 윈도우
+                        .limitForPeriod(1) // 1초당 1개 요청 (매우 엄격)
                         .timeoutDuration(Duration.ofSeconds(60))
                         .build()
 
