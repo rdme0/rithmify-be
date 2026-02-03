@@ -103,8 +103,10 @@ GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}
 **Query Parameters**
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `page` | integer | ❌ | `0` | 페이지 번호 (0부터 시작) |
-| `size` | integer | ❌ | `20` | 페이지당 항목 수 |
+| `page` | integer | ❌ | `1` | 페이지 번호 (1부터 시작) |
+| `size` | integer | ❌ | `20` | 페이지당 항목 수 (1-100) |
+| `sort` | string | ❌ | - | 정렬 필드 (`name`, `duration`, `album`, `artist`) |
+| `direction` | string | ❌ | `asc` | 정렬 방향 (`asc`, `desc`) |
 
 **Implementation Details**
 
@@ -119,10 +121,10 @@ GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}
    - 첫 요청 후 Redis에 전체 트랙 리스트 저장
    - 이후 요청은 Redis에서 즉시 반환
 
-3. **In-Memory Pagination**
-   - Redis에서 가져온 전체 리스트를 메모리에서 페이지네이션
-   - `fromIndex = page * size`
-   - 범위 초과 시 빈 배열 반환
+3. **In-Memory Sorting & Pagination**
+   - 정렬 가능 필드: `name` (곡명), `duration` (재생시간), `album` (앨범명), `artist` (아티스트명)
+   - 메모리에서 정렬 후 페이지네이션 적용
+   - `page`는 1부터 시작 (1-based indexing)
 
 **Response**
 ```json
@@ -180,23 +182,33 @@ GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}
 ```typescript
 // React/Next.js 예시
 const [tracks, setTracks] = useState([]);
-const [page, setPage] = useState(0);
+const [page, setPage] = useState(1);
 const [hasMore, setHasMore] = useState(true);
 
 async function loadMoreTracks(artistId: string) {
   const res = await fetch(
-    `/api/spotify/artists/${artistId}/tracks?page=${page}&size=20`
+    `/api/spotify/artists/${artistId}/tracks?page=${page}&size=20&sort=name&direction=asc`
   );
-  const newTracks = await res.json();
+  const pageData = await res.json();
   
-  if (newTracks.length === 0) {
+  if (pageData.last) {
     setHasMore(false);
-    return;
   }
   
-  setTracks(prev => [...prev, ...newTracks]);
+  setTracks(prev => [...prev, ...pageData.content]);
   setPage(prev => prev + 1);
 }
+```
+**Sorting Examples**
+```http
+# 곡명 오름차순
+GET /api/spotify/artists/{artistId}/tracks?sort=name&direction=asc
+
+# 재생시간 내림차순 (긴 곡부터)
+GET /api/spotify/artists/{artistId}/tracks?sort=duration&direction=desc
+
+# 앨범명 기준
+GET /api/spotify/artists/{artistId}/tracks?sort=album&direction=asc
 ```
 
 **Performance Characteristics**

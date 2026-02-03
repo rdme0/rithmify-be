@@ -35,10 +35,17 @@ class SpotifyController(private val spotifySearchService: SpotifySearchService) 
     @GetMapping("/artists/{id}/tracks")
     suspend fun getArtistTracks(
             @PathVariable id: String,
-            @RequestParam(defaultValue = "0") page: Int,
-            @RequestParam(defaultValue = "20") size: Int
-    ): ResponseEntity<Page<TrackResponse>> {
-        val trackPage = spotifySearchService.getArtistTracks(id, page, size)
+            @backend.common.annotation.ResolvePageable(
+                    allowed =
+                            [
+                                    backend.common.constant.TrackSortField.NAME,
+                                    backend.common.constant.TrackSortField.DURATION,
+                                    backend.common.constant.TrackSortField.ALBUM_NAME,
+                                    backend.common.constant.TrackSortField.ARTIST_NAME]
+            )
+            pageable: org.springframework.data.domain.Pageable
+    ): ResponseEntity<org.springframework.data.domain.Page<TrackResponse>> {
+        val trackPage = spotifySearchService.getArtistTracks(id, pageable)
         return ResponseEntity.ok(trackPage)
     }
 }
