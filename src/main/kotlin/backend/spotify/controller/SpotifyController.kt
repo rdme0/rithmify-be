@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/spotify")
 class SpotifyController(private val spotifySearchService: SpotifySearchService) {
 
-    @GetMapping("/search/artist")
+    @GetMapping("/search/artists")
     suspend fun searchArtist(query: String): ResponseEntity<Any> {
         val artists = spotifySearchService.searchArtist(query)
         return ResponseEntity.ok(artists)

@@ -30,7 +30,8 @@ class SpotifySearchService(
     suspend fun searchArtist(query: String): List<ArtistSearchResponse> {
         val response = spotifyClient.searchArtist(query)
 
-        return response?.artists?.items?.map { artist ->
+        // Deduplicate artists by ID just in case
+        return response?.artists?.items?.distinctBy { it.id }?.map { artist ->
             ArtistSearchResponse(
                     id = artist.id,
                     name = artist.name,
@@ -51,22 +52,29 @@ class SpotifySearchService(
     suspend fun getArtistTopTracks(artistId: String, requirePreview: Boolean): List<TrackResponse> {
         val tracks = spotifyClient.getArtistTopTracks(artistId)
 
-        return tracks.filter { !requirePreview || !it.previewUrl.isNullOrEmpty() }.map { track ->
-            TrackResponse(
-                    id = track.id,
-                    name = track.name,
-                    artistName = track.artists.joinToString(", ") { it.name },
-                    albumName = track.album.name,
-                    imageUrl = (track.album.images ?: emptyList()).firstOrNull()?.url,
-                    previewUrl = track.previewUrl,
-                    durationMs = track.durationMs
-            )
-        }
+        // Deduplicate tracks by ID
+        return tracks
+                .distinctBy { it.id }
+                .filter { !requirePreview || !it.previewUrl.isNullOrEmpty() }
+                .map { track ->
+                    TrackResponse(
+                            id = track.id,
+                            name = track.name,
+                            artistName = track.artists.joinToString(", ") { it.name },
+                            albumName = track.album.name,
+                            imageUrl = (track.album.images ?: emptyList()).firstOrNull()?.url,
+                            previewUrl = track.previewUrl,
+                            durationMs = track.durationMs
+                    )
+                }
     }
 
     suspend fun getArtistAlbums(artistId: String, pageable: Pageable): Page<SpotifyAlbumDTO> {
-        // Fetch all albums from client (pagination supported by client loop)
-        val albums = spotifyClient.getArtistAlbums(artistId)
+        // Fetch all albums from client
+        val albums =
+                spotifyClient.getArtistAlbums(artistId).distinctBy {
+                    it.id
+                } // Prevent Duplicate Key Error
 
         // In-memory pagination
         val page = pageable.pageNumber
@@ -91,22 +99,20 @@ class SpotifySearchService(
         }
 
         // 1. Get IDs from Album (Lightweight)
-        // Note: Client ensures all tracks are fetched (pagination loop inside client)
         val simpleTracks = spotifyClient.getAlbumTracks(albumId)
-        val trackIds = simpleTracks.map { it.id }
+        val trackIds = simpleTracks.map { it.id }.distinct() // Deduplicate IDs first
 
-        // 2. Bulk Fetch Details (Heavyweight) to get Images
-        // Even though it's one album, using Bulk Fetch ensures specific track details are rich
+        // 2. Bulk Fetch Details (Heavyweight)
         val fullTracks =
                 if (trackIds.isNotEmpty()) {
-                    // Split into chunks of 50 just in case album has > 50 tracks
                     trackIds.chunked(50).flatMap { ids -> spotifyClient.getTracksByIds(ids) }
                 } else {
                     emptyList()
                 }
 
+        // 3. Final Deduplication & Mapping
         val response =
-                fullTracks.map { track ->
+                fullTracks.distinctBy { it.id }.map { track ->
                     TrackResponse(
                             id = track.id,
                             name = track.name,
