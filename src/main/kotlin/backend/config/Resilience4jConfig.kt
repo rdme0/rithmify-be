@@ -1,13 +1,9 @@
-
 package backend.config
 
 import io.github.resilience4j.ratelimiter.RateLimiter
 import io.github.resilience4j.ratelimiter.RateLimiterConfig
-import io.github.resilience4j.retry.Retry
-import io.github.resilience4j.retry.RetryConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.web.reactive.function.client.WebClientResponseException
 import java.time.Duration
 
 @Configuration
@@ -22,16 +18,5 @@ class Resilience4jConfig {
             .build()
 
         return RateLimiter.of("spotify-api", config)
-    }
-
-    @Bean
-    fun spotifyRetry(): Retry {
-        val config = RetryConfig.custom<Any>()
-            .maxAttempts(3)
-            .waitDuration(Duration.ofMillis(1000))
-            .retryOnException { it is WebClientResponseException.TooManyRequests }
-            .build()
-
-        return Retry.of("spotify-retry", config)
     }
 }

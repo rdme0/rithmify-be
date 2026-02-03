@@ -1,11 +1,11 @@
 package backend.spotify.client
 
 import backend.common.exception.server.InternalServerException
+import backend.common.util.retry
 import backend.spotify.config.SpotifyApiProperties
 import backend.spotify.config.SpotifySecurityProperties
 import backend.spotify.dto.internal.*
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction
 import io.github.resilience4j.ratelimiter.RateLimiter
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -57,7 +57,6 @@ class SpotifyTokenManager(
         val expiresIn = (response["expires_in"] as? Int)?.toLong() ?: 3600L
         val ttl = Duration.ofSeconds(expiresIn - TOKEN_BUFFER_SECONDS)
 
-        // 3. Save to Redis
         redisTemplate.opsForValue().set(REDIS_KEY_ACCESS_TOKEN, accessToken, ttl)
 
         return accessToken
@@ -69,8 +68,7 @@ class SpotifyTokenManager(
 class SpotifyClient(
     private val tokenManager: SpotifyTokenManager,
     private val properties: SpotifyApiProperties,
-    private val rateLimiter: RateLimiter,
-    private val retry: io.github.resilience4j.retry.Retry
+    private val rateLimiter: RateLimiter
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -83,25 +81,25 @@ class SpotifyClient(
      * Handles 429 Too Many Requests with Retry-After header
      */
     private suspend fun <T> executeWithRetry(block: suspend () -> T): T {
-        var attempt = 0
-        val maxAttempts = 3
-
-        while (attempt < maxAttempts) {
-            try {
-                return rateLimiter.executeSuspendFunction {
-                    block()
+        return retry(
+            times = 3,
+            retryCondition = { it is WebClientResponseException.TooManyRequests },
+            extractDelay = { e ->
+                if (e is WebClientResponseException.TooManyRequests) {
+                    val retryAfter = e.headers.getFirst("Retry-After")?.toLongOrNull() ?: 2L
+                    retryAfter * 1000
+                } else {
+                    null
                 }
-            } catch (e: WebClientResponseException.TooManyRequests) {
-                attempt++
-                if (attempt >= maxAttempts) throw e
-
-                val retryAfter = e.headers["Retry-After"]?.firstOrNull()?.toLongOrNull() ?: 2
-                val delayMs = retryAfter * 1000
-                logger.warn { "429 Too Many Requests. Retrying after ${delayMs}ms (attempt $attempt/$maxAttempts)" }
-                kotlinx.coroutines.delay(delayMs)
+            }
+        ) {
+            // Wait for permission (blocking but safe within timeout)
+            if (rateLimiter.acquirePermission(1)) {
+                block()
+            } else {
+                throw IllegalStateException("Rate limiter timeout")
             }
         }
-        throw IllegalStateException("Max retries exceeded")
     }
 
     suspend fun searchArtist(query: String): SpotifySearchResponseDTO? {
