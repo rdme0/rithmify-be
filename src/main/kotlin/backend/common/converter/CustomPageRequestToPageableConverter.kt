@@ -1,6 +1,5 @@
 package backend.common.converter
 
-import backend.common.constant.TrackSortField
 import backend.common.dto.request.CustomPageRequest
 import backend.common.exception.InvalidPageableFieldException
 import org.springframework.core.convert.converter.Converter
@@ -8,8 +7,9 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 
-class CustomPageRequestToPageableConverter(private val allowedFields: List<TrackSortField>) :
-        Converter<CustomPageRequest, Pageable> {
+class CustomPageRequestToPageableConverter(
+        private val allowedFields: List<backend.common.constant.BaseSortField>
+) : Converter<CustomPageRequest, Pageable> {
 
     override fun convert(request: CustomPageRequest): Pageable {
         val page = (request.page ?: 1) - 1
@@ -39,7 +39,7 @@ class CustomPageRequestToPageableConverter(private val allowedFields: List<Track
                     throw InvalidPageableFieldException("direction", directionString)
                 }
 
-        val sortField: TrackSortField =
+        val sortField: backend.common.constant.BaseSortField =
                 allowedFields.find { it.requestField == requestFieldString }
                         ?: throw InvalidPageableFieldException("sort", requestFieldString)
 

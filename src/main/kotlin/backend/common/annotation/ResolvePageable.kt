@@ -1,7 +1,7 @@
 package backend.common.annotation
 
-import backend.common.constant.TrackSortField
+import kotlin.reflect.KClass
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class ResolvePageable(val allowed: Array<TrackSortField>)
+annotation class ResolvePageable(val enumClass: KClass<out Enum<*>>)

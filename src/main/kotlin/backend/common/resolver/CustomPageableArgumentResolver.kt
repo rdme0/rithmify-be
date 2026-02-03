@@ -1,6 +1,7 @@
 package backend.common.resolver
 
 import backend.common.annotation.ResolvePageable
+import backend.common.constant.BaseSortField
 import backend.common.converter.CustomPageRequestToPageableConverter
 import backend.common.dto.request.CustomPageRequest
 import org.springframework.core.MethodParameter
@@ -20,13 +21,17 @@ class CustomPageableArgumentResolver : HandlerMethodArgumentResolver {
     }
 
     override fun resolveArgument(
-            parameter: MethodParameter,
-            mavContainer: ModelAndViewContainer?,
-            webRequest: NativeWebRequest,
-            binderFactory: WebDataBinderFactory?
+        parameter: MethodParameter,
+        mavContainer: ModelAndViewContainer?,
+        webRequest: NativeWebRequest,
+        binderFactory: WebDataBinderFactory?
     ): Any {
         val annotation = parameter.getParameterAnnotation(ResolvePageable::class.java)!!
-        val allowedFields = annotation.allowed.toList()
+        val enumClass = annotation.enumClass.java
+
+        // Get all enum constants that implement BaseSortField
+        val allowedFields =
+            enumClass.enumConstants.filterIsInstance<BaseSortField>()
 
         val sort = webRequest.getParameter("sort")
         val direction = webRequest.getParameter("direction")
@@ -34,12 +39,12 @@ class CustomPageableArgumentResolver : HandlerMethodArgumentResolver {
         val sizeStr = webRequest.getParameter("size")
 
         val request =
-                CustomPageRequest(
-                        sort = sort,
-                        direction = direction,
-                        page = pageStr?.toIntOrNull(),
-                        size = sizeStr?.toIntOrNull()
-                )
+            CustomPageRequest(
+                sort = sort,
+                direction = direction,
+                page = pageStr?.toIntOrNull(),
+                size = sizeStr?.toIntOrNull()
+            )
 
         return CustomPageRequestToPageableConverter(allowedFields).convert(request)
     }
