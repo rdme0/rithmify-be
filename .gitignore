@@ -45,7 +45,7 @@ build_log*.txt
 ### env ###
 *.env
 # Build output logs
-build_output.txt
+build_*.txt
 test_*.txt
 classes_*.txt
 
