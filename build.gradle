@@ -25,6 +25,10 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-reflect'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
+    // Jackson
+    implementation 'com.fasterxml.jackson.module:jackson-module-jsonSchema'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+
     // Auth & Security
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
