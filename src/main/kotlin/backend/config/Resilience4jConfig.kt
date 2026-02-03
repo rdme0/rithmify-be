@@ -14,7 +14,7 @@ class Resilience4jConfig {
         val config =
                 RateLimiterConfig.custom()
                         .limitRefreshPeriod(Duration.ofSeconds(30)) // 30초 윈도우
-                        .limitForPeriod(80) // 30초당 80개 요청 (안전 마진)
+                        .limitForPeriod(50) // 30초당 50개 요청 (더 보수적으로 조정)
                         .timeoutDuration(Duration.ofSeconds(60))
                         .build()
 
