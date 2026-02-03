@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Build Logs ###
+build_log*.txt
+
 ### Kotlin ###
 .kotlin
 
