@@ -15,9 +15,9 @@ import org.springframework.stereotype.Service
 
 @Service
 class SpotifySearchService(
-    private val spotifyClient: SpotifyClient,
-    private val redisTemplate: StringRedisTemplate,
-    private val objectMapper: ObjectMapper
+        private val spotifyClient: SpotifyClient,
+        private val redisTemplate: StringRedisTemplate,
+        private val objectMapper: ObjectMapper
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -30,19 +30,20 @@ class SpotifySearchService(
 
         return response?.artists?.items?.map { artist ->
             ArtistSearchResponse(
-                id = artist.id,
-                name = artist.name,
-                images = (artist.images ?: emptyList()).map { img ->
-                    SpotifyImageResponse(
-                        url = img.url,
-                        height = img.height,
-                        width = img.width
-                    )
-                },
-                genres = artist.genres ?: emptyList()
+                    id = artist.id,
+                    name = artist.name,
+                    images =
+                            (artist.images ?: emptyList()).map { img ->
+                                SpotifyImageResponse(
+                                        url = img.url,
+                                        height = img.height,
+                                        width = img.width
+                                )
+                            },
+                    genres = artist.genres ?: emptyList()
             )
         }
-            ?: emptyList()
+                ?: emptyList()
     }
 
     suspend fun getArtistTopTracks(artistId: String, requirePreview: Boolean): List<TrackResponse> {
@@ -50,13 +51,13 @@ class SpotifySearchService(
 
         return tracks.filter { !requirePreview || !it.previewUrl.isNullOrEmpty() }.map { track ->
             TrackResponse(
-                id = track.id,
-                name = track.name,
-                artistName = track.artists.joinToString(", ") { it.name },
-                albumName = track.album.name,
-                imageUrl = (track.album.images ?: emptyList()).firstOrNull()?.url,
-                previewUrl = track.previewUrl,
-                durationMs = track.durationMs
+                    id = track.id,
+                    name = track.name,
+                    artistName = track.artists.joinToString(", ") { it.name },
+                    albumName = track.album.name,
+                    imageUrl = (track.album.images ?: emptyList()).firstOrNull()?.url,
+                    previewUrl = track.previewUrl,
+                    durationMs = track.durationMs
             )
         }
     }
@@ -66,58 +67,60 @@ class SpotifySearchService(
         val cachedTracks = redisTemplate.opsForValue().get(cacheKey)
 
         val allTracks: List<TrackResponse> =
-            if (cachedTracks != null) {
-                logger.debug { "Cache hit for artist tracks: $artistId" }
-                objectMapper.readValue(
-                    cachedTracks,
-                    object : TypeReference<List<TrackResponse>>() {}
-                )
-            } else {
-                logger.info {
-                    "Cache miss for artist tracks: $artistId. Fetching from Spotify..."
-                }
-                val albums = spotifyClient.getArtistAlbums(artistId)
-
-                // Parallel fetch tracks from all albums
-                val tracks: List<TrackResponse> = coroutineScope {
-                    albums
-                        .map { album ->
-                            async {
-                                spotifyClient.getAlbumTracks(album.id).map { track ->
-                                    TrackResponse(
-                                        id = track.id,
-                                        name = track.name,
-                                        artistName = track.artists.joinToString(", ") {
-                                            it.name
-                                        },
-                                        albumName = album.name,
-                                        imageUrl = (album.images ?: emptyList())
-                                            .firstOrNull()
-                                            ?.url,
-                                        previewUrl = track.previewUrl,
-                                        durationMs = track.durationMs
-                                    )
-                                }
-                            }
-                        }
-                        .awaitAll()
-                        .flatten()
-                }
-
-                // Deduplicate by name and duration
-                val distinctTracks = tracks.distinctBy { "${it.name}:${it.durationMs}" }
-
-                // Cache the full list for 1 hour
-                redisTemplate
-                    .opsForValue()
-                    .set(
-                        cacheKey,
-                        objectMapper.writeValueAsString(distinctTracks),
-                        CACHE_TTL_HOURS,
-                        java.util.concurrent.TimeUnit.HOURS
+                if (cachedTracks != null) {
+                    logger.debug { "Cache hit for artist tracks: $artistId" }
+                    objectMapper.readValue(
+                            cachedTracks,
+                            object : TypeReference<List<TrackResponse>>() {}
                     )
-                distinctTracks
-            }
+                } else {
+                    logger.info {
+                        "Cache miss for artist tracks: $artistId. Fetching from Spotify..."
+                    }
+                    val albums = spotifyClient.getArtistAlbums(artistId)
+
+                    // Parallel fetch tracks from all albums
+                    val tracks: List<TrackResponse> = coroutineScope {
+                        albums
+                                .map { album ->
+                                    async {
+                                        spotifyClient.getAlbumTracks(album.id).map { track ->
+                                            TrackResponse(
+                                                    id = track.id,
+                                                    name = track.name,
+                                                    artistName =
+                                                            track.artists.joinToString(", ") {
+                                                                it.name
+                                                            },
+                                                    albumName = album.name,
+                                                    imageUrl =
+                                                            (album.images ?: emptyList())
+                                                                    .firstOrNull()
+                                                                    ?.url,
+                                                    previewUrl = track.previewUrl,
+                                                    durationMs = track.durationMs
+                                            )
+                                        }
+                                    }
+                                }
+                                .awaitAll()
+                                .flatten()
+                    }
+
+                    // Deduplicate by Track ID (same track can be in multiple albums)
+                    val distinctTracks = tracks.distinctBy { it.id }
+
+                    // Cache the full list for 1 hour
+                    redisTemplate
+                            .opsForValue()
+                            .set(
+                                    cacheKey,
+                                    objectMapper.writeValueAsString(distinctTracks),
+                                    CACHE_TTL_HOURS,
+                                    java.util.concurrent.TimeUnit.HOURS
+                            )
+                    distinctTracks
+                }
 
         // In-memory pagination
         val fromIndex = page * size
