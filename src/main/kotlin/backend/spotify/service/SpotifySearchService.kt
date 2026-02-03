@@ -79,32 +79,43 @@ class SpotifySearchService(
                     }
                     val albums = spotifyClient.getArtistAlbums(artistId)
 
-                    // Parallel fetch tracks from all albums
-                    val tracks: List<TrackResponse> = coroutineScope {
-                        albums
-                                .map { album ->
-                                    async {
-                                        spotifyClient.getAlbumTracks(album.id).map { track ->
-                                            TrackResponse(
-                                                    id = track.id,
-                                                    name = track.name,
-                                                    artistName =
-                                                            track.artists.joinToString(", ") {
-                                                                it.name
-                                                            },
-                                                    albumName = album.name,
-                                                    imageUrl =
-                                                            (album.images ?: emptyList())
-                                                                    .firstOrNull()
-                                                                    ?.url,
-                                                    previewUrl = track.previewUrl,
-                                                    durationMs = track.durationMs
-                                            )
+                    // Process albums in chunks to avoid Spotify rate limits (429 errors)
+                    val tracks = mutableListOf<TrackResponse>()
+                    val chunkSize = 5 // Process 5 albums at a time
+
+                    albums.chunked(chunkSize).forEach { albumChunk ->
+                        val chunkTracks: List<TrackResponse> = coroutineScope {
+                            albumChunk
+                                    .map { album ->
+                                        async {
+                                            spotifyClient.getAlbumTracks(album.id).map { track ->
+                                                TrackResponse(
+                                                        id = track.id,
+                                                        name = track.name,
+                                                        artistName =
+                                                                track.artists.joinToString(", ") {
+                                                                    it.name
+                                                                },
+                                                        albumName = album.name,
+                                                        imageUrl =
+                                                                (album.images ?: emptyList())
+                                                                        .firstOrNull()
+                                                                        ?.url,
+                                                        previewUrl = track.previewUrl,
+                                                        durationMs = track.durationMs
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                                .awaitAll()
-                                .flatten()
+                                    .awaitAll()
+                                    .flatten()
+                        }
+                        tracks.addAll(chunkTracks)
+
+                        // Small delay between chunks to respect rate limits
+                        if (albumChunk != albums.chunked(chunkSize).last()) {
+                            kotlinx.coroutines.delay(100)
+                        }
                     }
 
                     // Deduplicate by Track ID (same track can be in multiple albums)
