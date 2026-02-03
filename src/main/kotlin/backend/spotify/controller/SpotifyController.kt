@@ -3,6 +3,7 @@ package backend.spotify.controller
 import backend.spotify.dto.response.ArtistSearchResponse
 import backend.spotify.dto.response.TrackResponse
 import backend.spotify.service.SpotifySearchService
+import org.springframework.data.domain.Page
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -36,8 +37,8 @@ class SpotifyController(private val spotifySearchService: SpotifySearchService) 
             @PathVariable id: String,
             @RequestParam(defaultValue = "0") page: Int,
             @RequestParam(defaultValue = "20") size: Int
-    ): ResponseEntity<List<TrackResponse>> {
-        val tracks = spotifySearchService.getArtistTracks(id, page, size)
-        return ResponseEntity.ok(tracks)
+    ): ResponseEntity<Page<TrackResponse>> {
+        val trackPage = spotifySearchService.getArtistTracks(id, page, size)
+        return ResponseEntity.ok(trackPage)
     }
 }

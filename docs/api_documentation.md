@@ -126,26 +126,53 @@ GET /api/spotify/artists/{artistId}/tracks?page={page}&size={size}
 
 **Response**
 ```json
-[
-  {
-    "id": "3BovdzfaX4jb5KFQwoPfAw",
-    "name": "Give Me Everything",
-    "artistName": "Pitbull, Ne-Yo, Afrojack, Nayer",
-    "albumName": "Planet Pit (Deluxe Version)",
-    "imageUrl": "https://i.scdn.co/image/ab67616d0000b273...",
-    "previewUrl": "https://p.scdn.co/mp3-preview/...",
-    "durationMs": 251067
+{
+  "content": [
+    {
+      "id": "3BovdzfaX4jb5KFQwoPfAw",
+      "name": "Give Me Everything",
+      "artistName": "Pitbull, Ne-Yo, Afrojack, Nayer",
+      "albumName": "Planet Pit (Deluxe Version)",
+      "imageUrl": "https://i.scdn.co/image/ab67616d0000b273...",
+      "previewUrl": "https://p.scdn.co/mp3-preview/...",
+      "durationMs": 251067
+    },
+    {
+      "id": "7w87IxuO7BDcJ3YUqCyMTT",
+      "name": "Time of Our Lives",
+      "artistName": "Pitbull, Ne-Yo",
+      "albumName": "Globalization",
+      "imageUrl": "https://i.scdn.co/image/ab67616d0000b273...",
+      "previewUrl": "https://p.scdn.co/mp3-preview/...",
+      "durationMs": 228693
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20,
+    "offset": 0,
+    "sort": {
+      "sorted": false,
+      "unsorted": true,
+      "empty": true
+    },
+    "paged": true,
+    "unpaged": false
   },
-  {
-    "id": "7w87IxuO7BDcJ3YUqCyMTT",
-    "name": "Time of Our Lives",
-    "artistName": "Pitbull, Ne-Yo",
-    "albumName": "Globalization",
-    "imageUrl": "https://i.scdn.co/image/ab67616d0000b273...",
-    "previewUrl": "https://p.scdn.co/mp3-preview/...",
-    "durationMs": 228693
-  }
-]
+  "totalElements": 156,
+  "totalPages": 8,
+  "last": false,
+  "size": 20,
+  "number": 0,
+  "sort": {
+    "sorted": false,
+    "unsorted": true,
+    "empty": true
+  },
+  "numberOfElements": 20,
+  "first": true,
+  "empty": false
+}
 ```
 
 **Infinite Scroll Example**
