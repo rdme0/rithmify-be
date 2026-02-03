@@ -1,4 +1,6 @@
 package backend.common.exception
 
-class InvalidPageableFieldException(val field: String, val value: String) :
-        IllegalArgumentException("Invalid pageable field: $field = $value")
+import backend.common.exception.enums.ErrorCode
+
+class InvalidPageableFieldException(field: String, value: String) :
+        BusinessException(ErrorCode.INVALID_PAGEABLE_FIELD)
