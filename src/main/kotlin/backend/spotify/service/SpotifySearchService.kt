@@ -2,6 +2,7 @@ package backend.spotify.service
 
 import backend.spotify.client.SpotifyClient
 import backend.spotify.dto.internal.SpotifyAlbumDTO
+import backend.spotify.dto.response.AlbumResponse
 import backend.spotify.dto.response.ArtistSearchResponse
 import backend.spotify.dto.response.SpotifyImageResponse
 import backend.spotify.dto.response.TrackResponse
@@ -23,75 +24,162 @@ class SpotifySearchService(
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
-        private const val CACHE_KEY_PREFIX = "spotify:artist"
+        private const val CACHE_KEY_PREFIX = "spotify:v4:artist" // Versioned cache key (v4)
         private const val CACHE_TTL_HOURS = 1L
+    }
+
+    private fun <T> List<T>.verifyUniqueness(
+            methodName: String,
+            idSelector: (T) -> String
+    ): List<T> {
+        val distinct = this.distinctBy { idSelector(it).trim() }
+        if (distinct.size < this.size) {
+            val duplicates =
+                    this.groupBy { idSelector(it).trim() }.filter { it.value.size > 1 }.keys
+            logger.error {
+                "[$methodName] CRITICAL: Duplicates found even after internal processing: $duplicates"
+            }
+        }
+        return distinct
     }
 
     suspend fun searchArtist(query: String): List<ArtistSearchResponse> {
         val response = spotifyClient.searchArtist(query)
 
-        // Deduplicate artists by ID just in case
-        return response?.artists?.items?.distinctBy { it.id }?.map { artist ->
-            ArtistSearchResponse(
-                    id = artist.id,
-                    name = artist.name,
-                    images =
-                            (artist.images ?: emptyList()).map { img ->
-                                SpotifyImageResponse(
-                                        url = img.url,
-                                        height = img.height,
-                                        width = img.width
-                                )
-                            },
-                    genres = artist.genres ?: emptyList()
-            )
-        }
-                ?: emptyList()
+        val processed =
+                response?.artists?.items?.distinctBy { it.id.trim() }?.map { artist ->
+                    ArtistSearchResponse(
+                            id = artist.id.trim(),
+                            name = artist.name,
+                            images =
+                                    (artist.images ?: emptyList()).map { img ->
+                                        SpotifyImageResponse(
+                                                url = img.url,
+                                                height = img.height,
+                                                width = img.width
+                                        )
+                                    },
+                            genres = artist.genres ?: emptyList()
+                    )
+                }
+                        ?: emptyList()
+
+        return processed.verifyUniqueness("searchArtist") { it.id }
     }
 
     suspend fun getArtistTopTracks(artistId: String, requirePreview: Boolean): List<TrackResponse> {
         val tracks = spotifyClient.getArtistTopTracks(artistId)
 
-        // Deduplicate tracks by ID
-        return tracks
-                .distinctBy { it.id }
-                .filter { !requirePreview || !it.previewUrl.isNullOrEmpty() }
-                .map { track ->
-                    TrackResponse(
-                            id = track.id,
-                            name = track.name,
-                            artistName = track.artists.joinToString(", ") { it.name },
-                            albumName = track.album.name,
-                            imageUrl = (track.album.images ?: emptyList()).firstOrNull()?.url,
-                            previewUrl = track.previewUrl,
-                            durationMs = track.durationMs
-                    )
-                }
+        val processed =
+                tracks
+                        .distinctBy { it.id.trim() }
+                        .filter { !requirePreview || !it.previewUrl.isNullOrEmpty() }
+                        .map { track ->
+                            TrackResponse(
+                                    id = track.id.trim(),
+                                    name = track.name,
+                                    artistName = track.artists.joinToString(", ") { it.name },
+                                    albumName = track.album.name,
+                                    imageUrl =
+                                            (track.album.images ?: emptyList()).firstOrNull()?.url,
+                                    releaseDate = track.album.releaseDate,
+                                    previewUrl = track.previewUrl,
+                                    durationMs = track.durationMs
+                            )
+                        }
+
+        return processed.verifyUniqueness("getArtistTopTracks") { it.id }
     }
 
-    suspend fun getArtistAlbums(artistId: String, pageable: Pageable): Page<SpotifyAlbumDTO> {
-        // Fetch all albums from client
-        val albums =
-                spotifyClient.getArtistAlbums(artistId).distinctBy {
-                    it.id
-                } // Prevent Duplicate Key Error
+    suspend fun getArtistAlbums(artistId: String, pageable: Pageable): Page<AlbumResponse> {
+        val cacheKey = "spotify:v4:artist:$artistId:albums"
+        val cachedData = redisTemplate.opsForValue().get(cacheKey)
+
+        val albums: List<SpotifyAlbumDTO> =
+                if (cachedData != null) {
+                    objectMapper.readValue(cachedData)
+                } else {
+                    val freshAlbums =
+                            spotifyClient.getArtistAlbums(artistId).distinctBy { it.id.trim() }
+                    redisTemplate
+                            .opsForValue()
+                            .set(
+                                    cacheKey,
+                                    objectMapper.writeValueAsString(freshAlbums),
+                                    CACHE_TTL_HOURS,
+                                    TimeUnit.HOURS
+                            )
+                    freshAlbums
+                }
+
+        // Map to Response DTO first, then sort
+        val mappedAlbums =
+                albums.map { album ->
+                    AlbumResponse(
+                            id = album.id,
+                            name = album.name,
+                            images =
+                                    (album.images ?: emptyList()).map { img ->
+                                        SpotifyImageResponse(img.url, img.height, img.width)
+                                    },
+                            releaseDate = album.releaseDate,
+                            totalTracks = album.totalTracks ?: 0
+                    )
+                }
+
+        // Dynamic Sorting Logic
+        val sort = pageable.sort
+        val comparator =
+                if (sort.isSorted) {
+                    var combined: Comparator<AlbumResponse>? = null
+                    sort.forEach { order ->
+                        val field =
+                                backend.common.constant.AlbumSortField.fromRequestKey(
+                                        order.property
+                                )
+                        if (field != null) {
+                            val base: Comparator<AlbumResponse> =
+                                    when (field) {
+                                        backend.common.constant.AlbumSortField.RELEASE_DATE ->
+                                                compareBy { it.releaseDate }
+                                        backend.common.constant.AlbumSortField.NAME ->
+                                                compareBy { it.name }
+                                        else -> compareBy { it.id } // Default or fallback
+                                    }
+                            val directed = if (order.isDescending) base.reversed() else base
+                            combined = combined?.thenComparing(directed) ?: directed
+                        }
+                    }
+                    combined
+                } else {
+                    null
+                }
+
+        // Apply Default (Release Date Desc) then always add ID tie-breaker
+        val finalComparator =
+                (comparator ?: compareByDescending { it.releaseDate }).thenBy { it.id }
+        val sortedAlbums = mappedAlbums.sortedWith(finalComparator)
 
         // In-memory pagination
         val page = pageable.pageNumber
         val size = pageable.pageSize
         val fromIndex = page * size
-        val toIndex = minOf(fromIndex + size, albums.size)
+        val toIndex = minOf(fromIndex + size, sortedAlbums.size)
 
-        if (fromIndex >= albums.size) {
-            return PageImpl(emptyList(), pageable, albums.size.toLong())
+        if (fromIndex >= sortedAlbums.size) {
+            return PageImpl(emptyList(), pageable, sortedAlbums.size.toLong())
         }
 
-        return PageImpl(albums.subList(fromIndex, toIndex), pageable, albums.size.toLong())
+        val resultList = sortedAlbums.subList(fromIndex, toIndex)
+
+        resultList.verifyUniqueness("getArtistAlbums") { it.id }
+
+        return PageImpl(resultList, pageable, sortedAlbums.size.toLong())
     }
 
     suspend fun getAlbumTracks(albumId: String): List<TrackResponse> {
-        // Cache Key for Album Tracks
-        val cacheKey = "spotify:album:$albumId:tracks"
+        // Cache Key for Album Tracks (Versioned - v4)
+        val cacheKey = "spotify:v4:album:$albumId:tracks"
         val cachedTracks = redisTemplate.opsForValue().get(cacheKey)
 
         if (cachedTracks != null) {
@@ -100,7 +188,7 @@ class SpotifySearchService(
 
         // 1. Get IDs from Album (Lightweight)
         val simpleTracks = spotifyClient.getAlbumTracks(albumId)
-        val trackIds = simpleTracks.map { it.id }.distinct() // Deduplicate IDs first
+        val trackIds = simpleTracks.map { it.id.trim() }.distinct()
 
         // 2. Bulk Fetch Details (Heavyweight)
         val fullTracks =
@@ -110,30 +198,33 @@ class SpotifySearchService(
                     emptyList()
                 }
 
-        // 3. Final Deduplication & Mapping
+        // 3. Final Deduplication, Stable Sorting & Mapping
         val response =
-                fullTracks.distinctBy { it.id }.map { track ->
+                fullTracks.distinctBy { it.id.trim() }.sortedBy { it.id }.map { track ->
                     TrackResponse(
-                            id = track.id,
+                            id = track.id.trim(),
                             name = track.name,
                             artistName = track.artists.joinToString(", ") { it.name },
                             albumName = track.album.name,
                             imageUrl = track.album.images?.firstOrNull()?.url,
+                            releaseDate = track.album.releaseDate,
                             previewUrl = track.previewUrl,
                             durationMs = track.durationMs
                     )
                 }
+
+        val finalResponse = response.verifyUniqueness("getAlbumTracks") { it.id }
 
         // Cache result
         redisTemplate
                 .opsForValue()
                 .set(
                         cacheKey,
-                        objectMapper.writeValueAsString(response),
+                        objectMapper.writeValueAsString(finalResponse),
                         CACHE_TTL_HOURS,
                         TimeUnit.HOURS
                 )
 
-        return response
+        return finalResponse
     }
 }

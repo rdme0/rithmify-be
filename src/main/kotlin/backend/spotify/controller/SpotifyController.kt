@@ -1,11 +1,12 @@
 package backend.spotify.controller
 
-import backend.spotify.dto.internal.SpotifyAlbumDTO
+import backend.common.annotation.ResolvePageable
+import backend.common.constant.AlbumSortField
+import backend.spotify.dto.response.AlbumResponse
 import backend.spotify.dto.response.TrackResponse
 import backend.spotify.service.SpotifySearchService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -31,8 +32,8 @@ class SpotifyController(private val spotifySearchService: SpotifySearchService) 
     @GetMapping("/artists/{id}/albums")
     suspend fun getArtistAlbums(
             @PathVariable id: String,
-            @PageableDefault(size = 20) pageable: Pageable
-    ): ResponseEntity<Page<SpotifyAlbumDTO>> {
+            @ResolvePageable(enumClass = AlbumSortField::class) pageable: Pageable
+    ): ResponseEntity<Page<AlbumResponse>> {
         val albums = spotifySearchService.getArtistAlbums(id, pageable)
         return ResponseEntity.ok(albums)
     }

@@ -35,7 +35,9 @@ data class SpotifySimplifiedTrackDTO(
 data class SpotifyAlbumDTO(
         val id: String,
         val name: String,
-        val images: List<SpotifyImageDTO>? = null
+        val images: List<SpotifyImageDTO>? = null,
+        val releaseDate: String? = null,
+        val totalTracks: Int? = null
 )
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
