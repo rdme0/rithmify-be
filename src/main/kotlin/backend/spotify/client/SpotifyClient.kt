@@ -43,13 +43,12 @@ class SpotifyTokenManager(
                 .retrieve()
                 .awaitBody<Map<String, Any>>()
 
-        val accessToken =
-            response["access_token"] as? String
-                ?: throw InternalServerException(
-                    IllegalStateException(
-                        "Failed to retrieve access token from Spotify"
-                    )
+        val accessToken = response["access_token"] as? String
+            ?: throw InternalServerException(
+                IllegalStateException(
+                    "Failed to retrieve access token from Spotify"
                 )
+            )
 
         val expiresIn = (response["expires_in"] as? Int)?.toLong() ?: 3600L
         val ttl = Duration.ofSeconds(expiresIn - TOKEN_BUFFER_SECONDS)
@@ -65,9 +64,41 @@ class SpotifyTokenManager(
 @EnableConfigurationProperties(SpotifyApiProperties::class)
 class SpotifyClient(
     private val tokenManager: SpotifyTokenManager,
-    private val properties: SpotifyApiProperties
+    private val properties: SpotifyApiProperties,
+    private val rateLimiter: io.github.resilience4j.ratelimiter.RateLimiter,
+    private val retry: io.github.resilience4j.retry.Retry
 ) {
+    companion object {
+        private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
+    }
+
     private val webClient = WebClient.builder().baseUrl(properties.baseUrl).build()
+
+    /**
+     * Execute a Spotify API call with rate limiting and retry logic
+     * Handles 429 Too Many Requests with Retry-After header
+     */
+    private suspend fun <T> executeWithRetry(block: suspend () -> T): T {
+        var attempt = 0
+        val maxAttempts = 3
+
+        while (attempt < maxAttempts) {
+            try {
+                return io.github.resilience4j.kotlin.ratelimiter.executeSuspendFunction(rateLimiter) {
+                    block()
+                }
+            } catch (e: org.springframework.web.reactive.function.client.WebClientResponseException.TooManyRequests) {
+                attempt++
+                if (attempt >= maxAttempts) throw e
+
+                val retryAfter = e.headers["Retry-After"]?.firstOrNull()?.toLongOrNull() ?: 2
+                val delayMs = retryAfter * 1000
+                logger.warn { "429 Too Many Requests. Retrying after ${delayMs}ms (attempt $attempt/$maxAttempts)" }
+                kotlinx.coroutines.delay(delayMs)
+            }
+        }
+        throw IllegalStateException("Max retries exceeded")
+    }
 
     suspend fun searchArtist(query: String): SpotifySearchResponseDTO? {
         return webClient
@@ -129,16 +160,19 @@ class SpotifyClient(
         while (nextUrl != null) {
             val currentUrl = nextUrl
 
-            val result = webClient
-                .get()
-                .uri(currentUrl)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                .retrieve()
-                .awaitBody<SpotifyAlbumResultDTO>()
+            val result = executeWithRetry {
+                webClient
+                    .get()
+                    .uri(currentUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+                    .retrieve()
+                    .awaitBody<SpotifyAlbumResultDTO>()
+            }
 
             allAlbums.addAll(result.items)
             nextUrl = result.next?.substringAfter(properties.baseUrl)
         }
+
         return allAlbums
     }
 
@@ -149,16 +183,38 @@ class SpotifyClient(
         while (nextUrl != null) {
             val currentUrl = nextUrl
 
-            val result = webClient
-                .get()
-                .uri(currentUrl)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                .retrieve()
-                .awaitBody<SpotifyAlbumTrackResultDTO>()
+            val result = executeWithRetry {
+                webClient
+                    .get()
+                    .uri(currentUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+                    .retrieve()
+                    .awaitBody<SpotifyAlbumTrackResultDTO>()
+            }
 
             allTracks.addAll(result.items)
             nextUrl = result.next?.substringAfter(properties.baseUrl)
         }
+
         return allTracks
+    }
+
+    /**
+     * Get multiple tracks by IDs (최대 50개)
+     * API 호출 수를 줄이기 위한 최적화
+     */
+    suspend fun getTracksByIds(ids: List<String>): List<SpotifyTrackDTO> {
+        require(ids.size <= 50) { "최대 50개의 트랙 ID만 조회 가능합니다" }
+        if (ids.isEmpty()) return emptyList()
+
+        return executeWithRetry {
+            webClient
+                .get()
+                .uri { it.path("/tracks").queryParam("ids", ids.joinToString(",")).build() }
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+                .retrieve()
+                .awaitBody<SpotifyTracksResponseDTO>()
+                .tracks
+        }
     }
 }

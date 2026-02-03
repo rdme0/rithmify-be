@@ -29,6 +29,11 @@ dependencies {
     implementation 'com.fasterxml.jackson.module:jackson-module-jsonSchema'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
+    // Resilience4j (Rate Limiting & Retry)
+    implementation 'io.github.resilience4j:resilience4j-ratelimiter:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-kotlin:2.2.0'
+
     // Auth & Security
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 

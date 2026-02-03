@@ -74,67 +74,66 @@ class SpotifySearchService(
         val cacheKey = "$CACHE_KEY_PREFIX:$artistId:all_tracks"
         val cachedTracks = redisTemplate.opsForValue().get(cacheKey)
 
-        val allTracks: List<TrackResponse> =
-            if (cachedTracks != null) {
-                logger.debug { "Cache hit for artist tracks: $artistId" }
-                objectMapper.readValue<List<TrackResponse>>(cachedTracks)
-            } else {
-                logger.info {
-                    "Cache miss for artist tracks: $artistId. Fetching from Spotify..."
-                }
-                val albums = spotifyClient.getArtistAlbums(artistId)
+        val allTracks: List<TrackResponse> = if (cachedTracks != null) {
+            logger.debug { "Cache hit for artist tracks: $artistId" }
+            objectMapper.readValue<List<TrackResponse>>(cachedTracks)
+        } else {
+            logger.info {
+                "Cache miss for artist tracks: $artistId. Fetching from Spotify..."
+            }
+            val albums = spotifyClient.getArtistAlbums(artistId)
 
-                // Process albums in chunks to avoid Spotify rate limits (429 errors)
-                val tracks = mutableListOf<TrackResponse>()
-                val chunkSize = 5 // Process 5 albums at a time
+            // Process albums in chunks to avoid Spotify rate limits (429 errors)
+            val tracks = mutableListOf<TrackResponse>()
+            val chunkSize = 5 // Process 5 albums at a time
 
-                albums.chunked(chunkSize).forEach { albumChunk ->
-                    val chunkTracks: List<TrackResponse> = coroutineScope {
-                        albumChunk
-                            .map { album ->
-                                async {
-                                    spotifyClient.getAlbumTracks(album.id).map { track ->
-                                        TrackResponse(
-                                            id = track.id,
-                                            name = track.name,
-                                            artistName = track.artists.joinToString(", ") {
-                                                it.name
-                                            },
-                                            albumName = album.name,
-                                            imageUrl = (album.images ?: emptyList())
-                                                .firstOrNull()
-                                                ?.url,
-                                            previewUrl = track.previewUrl,
-                                            durationMs = track.durationMs
-                                        )
-                                    }
+            albums.chunked(chunkSize).forEach { albumChunk ->
+                val chunkTracks: List<TrackResponse> = coroutineScope {
+                    albumChunk
+                        .map { album ->
+                            async {
+                                spotifyClient.getAlbumTracks(album.id).map { track ->
+                                    TrackResponse(
+                                        id = track.id,
+                                        name = track.name,
+                                        artistName = track.artists.joinToString(", ") {
+                                            it.name
+                                        },
+                                        albumName = album.name,
+                                        imageUrl = (album.images ?: emptyList())
+                                            .firstOrNull()
+                                            ?.url,
+                                        previewUrl = track.previewUrl,
+                                        durationMs = track.durationMs
+                                    )
                                 }
                             }
-                            .awaitAll()
-                            .flatten()
-                    }
-                    tracks.addAll(chunkTracks)
-
-                    // Small delay between chunks to respect rate limits
-                    if (albumChunk != albums.chunked(chunkSize).last()) {
-                        delay(100)
-                    }
+                        }
+                        .awaitAll()
+                        .flatten()
                 }
+                tracks.addAll(chunkTracks)
 
-                // Deduplicate by Track ID (same track can be in multiple albums)
-                val distinctTracks = tracks.distinctBy { it.id }
-
-                // Cache the full list for 1 hour
-                redisTemplate
-                    .opsForValue()
-                    .set(
-                        cacheKey,
-                        objectMapper.writeValueAsString(distinctTracks),
-                        CACHE_TTL_HOURS,
-                        TimeUnit.HOURS
-                    )
-                distinctTracks
+                // Small delay between chunks to respect rate limits
+                if (albumChunk != albums.chunked(chunkSize).last()) {
+                    delay(100)
+                }
             }
+
+            // Deduplicate by Track ID (same track can be in multiple albums)
+            val distinctTracks = tracks.distinctBy { it.id }
+
+            // Cache the full list for 1 hour
+            redisTemplate
+                .opsForValue()
+                .set(
+                    cacheKey,
+                    objectMapper.writeValueAsString(distinctTracks),
+                    CACHE_TTL_HOURS,
+                    TimeUnit.HOURS
+                )
+            distinctTracks
+        }
 
         // Apply sorting if specified
         val sortedTracks = if (pageable.sort.isSorted) {
