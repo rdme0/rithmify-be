@@ -4,10 +4,10 @@ import backend.common.constant.Domain
 import org.springframework.http.HttpStatus
 
 enum class ErrorCode(
-    private val domain: Domain,
-    val status: HttpStatus,
-    private val number: Int,
-    val message: String
+        private val domain: Domain,
+        val status: HttpStatus,
+        private val number: Int,
+        val message: String
 ) {
     // Common
     INTERNAL_SERVER(Domain.COMMON, HttpStatus.INTERNAL_SERVER_ERROR, 1, "서버 내부 오류입니다."),
@@ -23,7 +23,10 @@ enum class ErrorCode(
     TIER_GROUP_NOT_FOUND(Domain.TIERLIST, HttpStatus.NOT_FOUND, 2, "존재하지 않는 티어 그룹입니다."),
 
     // Spotify
-    SPOTIFY_API_ERROR(Domain.SPOTIFY, HttpStatus.BAD_GATEWAY, 1, "Spotify API 호출 중 오류가 발생했습니다.");
+    SPOTIFY_API_ERROR(Domain.SPOTIFY, HttpStatus.BAD_GATEWAY, 1, "Spotify API 호출 중 오류가 발생했습니다."),
+
+    // Pagination
+    INVALID_PAGEABLE_FIELD(Domain.COMMON, HttpStatus.BAD_REQUEST, 3, "유효하지 않은 페이지네이션 필드입니다: %s");
 
     fun getCode() = "${domain.name}_${status.value()}_%03d".format(number)
 }

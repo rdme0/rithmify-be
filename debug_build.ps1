@@ -6,8 +6,8 @@ Write-Host "Running Gradle build with log capture..."
 ./gradlew classes --no-daemon --console=plain > build_log.txt 2>&1
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Build Failed! Displaying the last 50 lines of the log:" -ForegroundColor Red
-    Get-Content build_log.txt -Tail 50
+    Write-Host "Build Failed! Displaying the FULL log:" -ForegroundColor Red
+    Get-Content build_log.txt
 } else {
     Write-Host "Build Succeeded!" -ForegroundColor Green
 }
