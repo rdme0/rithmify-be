@@ -51,9 +51,7 @@ GET /api/spotify/artists/{artistId}/top-tracks?requirePreview={boolean}
 ```
 
 **Query Parameters**
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `requirePreview` | boolean | ❌ | `false` | 미리듣기 URL 필수 여부 |
+None. (이전의 `requirePreview` 파라미터는 제거되었습니다. 모든 트랙을 반환하며, `previewUrl`이 없으면 `null`을 반환합니다.)
 
 **Response**
 ```json
@@ -64,6 +62,7 @@ GET /api/spotify/artists/{artistId}/top-tracks?requirePreview={boolean}
     "artistName": "Pitbull, Kesha",
     "albumName": "Meltdown",
     "imageUrl": "https://i.scdn.co/image/ab67616d0000b273...",
+    "releaseDate": "2013-01-01",
     "previewUrl": "https://p.scdn.co/mp3-preview/...",
     "durationMs": 324000
   }
@@ -139,7 +138,8 @@ GET /api/spotify/albums/{albumId}/tracks
     "artistName": "Pitbull, Ne-Yo, Afrojack, Nayer",
     "albumName": "Planet Pit (Deluxe Version)",
     "imageUrl": "https://i.scdn.co/image/ab67616d0000b273...",
-    "previewUrl": "https://p.scdn.co/mp3-preview/...",
+    "releaseDate": "2011-06-17",
+    "previewUrl": null,
     "durationMs": 251067
   }
 ]
@@ -157,18 +157,19 @@ GET /api/spotify/albums/{albumId}/tracks
   artistName: string;      // 아티스트명 (콤마로 구분)
   albumName: string;       // 앨범명
   imageUrl: string | null; // 앨범 커버 이미지 URL
-  previewUrl: string | null; // 30초 미리듣기 URL
+  releaseDate: string | null; // 앨범 출시일 (YYYY-MM-DD or YYYY)
+  previewUrl: string | null; // 30초 미리듣기 URL (없으면 null)
   durationMs: number;      // 재생 시간 (밀리초)
 }
 ```
 
-### SpotifyAlbumDTO
+### AlbumResponse
 ```typescript
 {
     id: string;
     name: string;
     images: ImageResponse[];
-    releaseDate: string;
+    releaseDate: string | null;
     totalTracks: number;
 }
 ```
@@ -185,6 +186,11 @@ GET /api/spotify/albums/{albumId}/tracks
 ---
 
 ## 🔄 Version History
+
+### v1.3.0 (2026-02-04)
+- 🔊 **Preview Policy**: `requirePreview` 파라미터 제거 (Option B: Null 허용)
+- ✨ **Data Quality**: `TrackResponse`에 `releaseDate` 추가, `AlbumResponse`에 `totalTracks` 추가
+- 🏷️ **Refactor**: 공개 API 응답 객체 표준화 (`AlbumResponse` 도입)
 
 ### v1.2.0 (2026-02-03)
 - ♻️ **Major Refactor**: Lazy Loading 구조 도입
