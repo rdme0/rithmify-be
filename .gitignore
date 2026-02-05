@@ -36,13 +36,16 @@ out/
 ### VS Code ###
 .vscode/
 
+### Build Logs ###
+build_log*.txt
+
 ### Kotlin ###
 .kotlin
 
 ### env ###
 *.env
 # Build output logs
-build_output.txt
+build_*.txt
 test_*.txt
 classes_*.txt
 

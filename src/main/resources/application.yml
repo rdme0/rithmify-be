@@ -22,6 +22,9 @@ spring:
             token-uri: https://accounts.spotify.com/api/token
             user-info-uri: https://api.spotify.com/v1/me
             user-name-attribute: id
+  data:
+    redis:
+      database: 1
 
 server.port: 10001
 
@@ -32,3 +35,10 @@ spotify:
     token-url: https://accounts.spotify.com/api/token
     client-id: ${SPOTIFY_CLIENT_ID}
     client-secret: ${SPOTIFY_CLIENT_SECRET}
+
+uri:
+  allowed-front-end-origins:
+    - http://127.0.0.1:*
+    - http://localhost:*
+  success-path: /auth/success
+  default-redirect-origin: http://localhost:3000
