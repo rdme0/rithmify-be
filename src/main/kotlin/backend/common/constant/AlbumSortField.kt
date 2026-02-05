@@ -4,8 +4,8 @@ import backend.spotify.dto.response.AlbumResponse
 
 /** 앨범 목록 조회 시 사용 가능한 정렬 필드 정의 */
 enum class AlbumSortField(
-        override val requestField: String,
-        val comparator: Comparator<AlbumResponse>
+    override val requestField: String,
+    val comparator: Comparator<AlbumResponse>
 ) : BaseSortField {
     NAME("name", compareBy { it.name }),
     RELEASE_DATE("release_date", compareBy { it.releaseDate });
@@ -14,5 +14,16 @@ enum class AlbumSortField(
         fun fromRequestKey(requestKey: String): AlbumSortField? {
             return entries.find { it.requestField == requestKey }
         }
+    }
+
+    fun toComparator(
+        isDescending: Boolean
+    ): Comparator<AlbumResponse> {
+        val base = when (this) {
+            AlbumSortField.RELEASE_DATE -> compareBy<AlbumResponse> { it.releaseDate }
+            AlbumSortField.NAME -> compareBy<AlbumResponse> { it.name }
+        }
+
+        return if (isDescending) base.reversed() else base
     }
 }
