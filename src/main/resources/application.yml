@@ -40,5 +40,6 @@ uri:
   allowed-front-end-origins:
     - http://127.0.0.1:*
     - http://localhost:*
+    - https://rithmify.link
   success-path: /auth/success
   default-redirect-origin: http://localhost:3000
