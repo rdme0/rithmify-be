@@ -18,7 +18,6 @@ data class SpotifyTrackDTO(
         val name: String,
         val artists: List<SpotifyArtistDTO>,
         val album: SpotifyAlbumDTO,
-        val previewUrl: String?,
         val durationMs: Long
 )
 
@@ -26,7 +25,6 @@ data class SpotifyTrackDTO(
 data class SpotifySimplifiedTrackDTO(
         val id: String,
         val name: String,
-        val previewUrl: String?,
         val durationMs: Long,
         val artists: List<SpotifyArtistDTO>
 )

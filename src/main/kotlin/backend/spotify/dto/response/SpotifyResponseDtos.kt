@@ -16,7 +16,6 @@ data class TrackResponse(
         val albumName: String,
         val imageUrl: String?,
         val releaseDate: String?,
-        val previewUrl: String?,
         val durationMs: Long
 )
 

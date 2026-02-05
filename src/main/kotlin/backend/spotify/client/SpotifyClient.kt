@@ -7,7 +7,7 @@ import backend.spotify.config.SpotifySecurityProperties
 import backend.spotify.dto.internal.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.resilience4j.ratelimiter.RateLimiter
-import java.time.Duration
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.http.HttpHeaders
@@ -17,12 +17,13 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.awaitBody
+import java.time.Duration
 
 @Component
 @EnableConfigurationProperties(SpotifySecurityProperties::class)
 class SpotifyTokenManager(
-        private val properties: SpotifySecurityProperties,
-        private val redisTemplate: StringRedisTemplate
+    private val properties: SpotifySecurityProperties,
+    private val redisTemplate: StringRedisTemplate
 ) {
     companion object {
         private const val REDIS_KEY_ACCESS_TOKEN = "spotify:access_token"
@@ -35,25 +36,23 @@ class SpotifyTokenManager(
 
     private suspend fun refreshToken(): String {
         val client = WebClient.create()
-        val response =
-                client.post()
-                        .uri(properties.tokenUrl)
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .body(
-                                BodyInserters.fromFormData("grant_type", "client_credentials")
-                                        .with("client_id", properties.clientId)
-                                        .with("client_secret", properties.clientSecret)
-                        )
-                        .retrieve()
-                        .awaitBody<Map<String, Any>>()
+        val response = client.post()
+            .uri(properties.tokenUrl)
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body(
+                BodyInserters.fromFormData("grant_type", "client_credentials")
+                    .with("client_id", properties.clientId)
+                    .with("client_secret", properties.clientSecret)
+            )
+            .retrieve()
+            .awaitBody<Map<String, Any>>()
 
-        val accessToken =
-                response["access_token"] as? String
-                        ?: throw InternalServerException(
-                                IllegalStateException(
-                                        "Failed to retrieve access token from Spotify"
-                                )
-                        )
+        val accessToken = response["access_token"] as? String
+            ?: throw InternalServerException(
+                IllegalStateException(
+                    "Failed to retrieve access token from Spotify"
+                )
+            )
 
         val expiresIn = (response["expires_in"] as? Int)?.toLong() ?: 3600L
         val ttl = Duration.ofSeconds(expiresIn - TOKEN_BUFFER_SECONDS)
@@ -67,9 +66,10 @@ class SpotifyTokenManager(
 @Component
 @EnableConfigurationProperties(SpotifyApiProperties::class)
 class SpotifyClient(
-        private val tokenManager: SpotifyTokenManager,
-        private val properties: SpotifyApiProperties,
-        private val rateLimiter: RateLimiter
+    private val tokenManager: SpotifyTokenManager,
+    private val properties: SpotifyApiProperties,
+    @Qualifier("spotifyRateLimiter")
+    private val rateLimiter: RateLimiter
 ) {
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -83,16 +83,16 @@ class SpotifyClient(
      */
     private suspend fun <T> executeWithRetry(block: suspend () -> T): T {
         return retry(
-                times = 3,
-                retryCondition = { it is WebClientResponseException.TooManyRequests },
-                extractDelay = { e ->
-                    if (e is WebClientResponseException.TooManyRequests) {
-                        val retryAfter = e.headers.getFirst("Retry-After")?.toLongOrNull() ?: 2L
-                        retryAfter * 1000
-                    } else {
-                        null
-                    }
+            times = 3,
+            retryCondition = { it is WebClientResponseException.TooManyRequests },
+            extractDelay = { e ->
+                if (e is WebClientResponseException.TooManyRequests) {
+                    val retryAfter = e.headers.getFirst("Retry-After")?.toLongOrNull() ?: 2L
+                    retryAfter * 1000
+                } else {
+                    null
                 }
+            }
         ) {
             // Wait for permission (blocking but safe within timeout)
             val start = System.currentTimeMillis()
@@ -112,56 +112,55 @@ class SpotifyClient(
 
     suspend fun searchArtist(query: String): SpotifySearchResponseDTO? {
         return webClient
-                .get()
-                .uri { uriBuilder ->
-                    uriBuilder
-                            .path("/search")
-                            .queryParam("q", query)
-                            .queryParam("type", "artist")
-                            .queryParam("limit", 30)
-                            .build()
-                }
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                .retrieve()
-                .awaitBody<SpotifySearchResponseDTO>()
+            .get()
+            .uri { uriBuilder ->
+                uriBuilder
+                    .path("/search")
+                    .queryParam("q", query)
+                    .queryParam("type", "artist")
+                    .queryParam("limit", 30)
+                    .build()
+            }
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+            .retrieve()
+            .awaitBody<SpotifySearchResponseDTO>()
     }
 
     suspend fun getArtistTopTracks(artistId: String, market: String = "KR"): List<SpotifyTrackDTO> {
-        val result =
-                webClient
-                        .get()
-                        .uri("/artists/$artistId/top-tracks?market=$market")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                        .retrieve()
-                        .awaitBody<SpotifyTopTracksResponseDTO>()
+        val result = webClient
+            .get()
+            .uri("/artists/$artistId/top-tracks?market=$market")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+            .retrieve()
+            .awaitBody<SpotifyTopTracksResponseDTO>()
 
         return result.tracks
     }
 
     suspend fun getArtist(artistId: String): SpotifyArtistDTO {
         return webClient
-                .get()
-                .uri("/artists/$artistId")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                .retrieve()
-                .awaitBody<SpotifyArtistDTO>()
+            .get()
+            .uri("/artists/$artistId")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+            .retrieve()
+            .awaitBody<SpotifyArtistDTO>()
     }
 
     suspend fun searchTracks(query: String, limit: Int, offset: Int): SpotifySearchResponseDTO? {
         return webClient
-                .get()
-                .uri { uriBuilder ->
-                    uriBuilder
-                            .path("/search")
-                            .queryParam("q", query)
-                            .queryParam("type", "track")
-                            .queryParam("limit", limit)
-                            .queryParam("offset", offset)
-                            .build()
-                }
-                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                .retrieve()
-                .awaitBody<SpotifySearchResponseDTO>()
+            .get()
+            .uri { uriBuilder ->
+                uriBuilder
+                    .path("/search")
+                    .queryParam("q", query)
+                    .queryParam("type", "track")
+                    .queryParam("limit", limit)
+                    .queryParam("offset", offset)
+                    .build()
+            }
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+            .retrieve()
+            .awaitBody<SpotifySearchResponseDTO>()
     }
 
     suspend fun getArtistAlbums(artistId: String): List<SpotifyAlbumDTO> {
@@ -173,11 +172,11 @@ class SpotifyClient(
 
             val result = executeWithRetry {
                 webClient
-                        .get()
-                        .uri(currentUrl)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                        .retrieve()
-                        .awaitBody<SpotifyAlbumResultDTO>()
+                    .get()
+                    .uri(currentUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+                    .retrieve()
+                    .awaitBody<SpotifyAlbumResultDTO>()
             }
 
             allAlbums.addAll(result.items)
@@ -196,11 +195,11 @@ class SpotifyClient(
 
             val result = executeWithRetry {
                 webClient
-                        .get()
-                        .uri(currentUrl)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                        .retrieve()
-                        .awaitBody<SpotifyAlbumTrackResultDTO>()
+                    .get()
+                    .uri(currentUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+                    .retrieve()
+                    .awaitBody<SpotifyAlbumTrackResultDTO>()
             }
 
             allTracks.addAll(result.items)
@@ -217,12 +216,12 @@ class SpotifyClient(
 
         return executeWithRetry {
             webClient
-                    .get()
-                    .uri { it.path("/tracks").queryParam("ids", ids.joinToString(",")).build() }
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
-                    .retrieve()
-                    .awaitBody<SpotifyTracksResponseDTO>()
-                    .tracks
+                .get()
+                .uri { it.path("/tracks").queryParam("ids", ids.joinToString(",")).build() }
+                .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokenManager.getToken()}")
+                .retrieve()
+                .awaitBody<SpotifyTracksResponseDTO>()
+                .tracks
         }
     }
 }
