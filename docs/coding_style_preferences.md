@@ -1,6 +1,6 @@
-# Tierify Backend Coding Style Guide
+# Rithmify Backend Coding Style Guide
 
-이 문서는 Tierify 백엔드 프로젝트의 코딩 스타일 규칙을 정의합니다.
+이 문서는 Rithmify 백엔드 프로젝트의 코딩 스타일 규칙을 정의합니다.
 
 ---
 
