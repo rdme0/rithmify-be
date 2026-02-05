@@ -25,7 +25,7 @@ class SpotifyController(private val spotifySearchService: SpotifySearchService) 
 
     @GetMapping("/artists/{id}/top-tracks")
     suspend fun getArtistTopTracks(@PathVariable id: String): ResponseEntity<List<TrackResponse>> {
-        val tracks = spotifySearchService.getArtistTopTracks(id, requirePreview = false)
+        val tracks = spotifySearchService.getArtistTopTracks(id)
         return ResponseEntity.ok(tracks)
     }
 
