@@ -1,6 +1,6 @@
-# 🧠 Tierify Backend Development Workflow Guide
+# 🧠 Rithmify Backend Development Workflow Guide
 
-이 문서는 Tierify 백엔드에 **새로운 기능을 추가하거나 리팩토링**할 때 따라야 할 **사고 흐름(Thought Process)**을 정의합니다.
+이 문서는 Rithmify 백엔드에 **새로운 기능을 추가하거나 리팩토링**할 때 따라야 할 **사고 흐름(Thought Process)**을 정의합니다.
 
 **핵심 원칙**: 가독성, 안정성(Safety), 고성능(Performance)
 

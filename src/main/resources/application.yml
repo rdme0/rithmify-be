@@ -1,6 +1,6 @@
 spring:
   application:
-    name: tierify-be
+    name: rithmify-be
   profiles:
     default: dev
   threads:

@@ -1,4 +1,4 @@
-# Tierify Backend API Documentation
+# Rithmify Backend API Documentation
 
 > **Last Updated**: 2026-02-03  
 > **Base URL**: `/api`
