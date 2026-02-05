@@ -24,9 +24,3 @@ logging:
   level:
     org.hibernate.SQL: WARN
     backend: INFO
-
-uri:
-  allowed-front-end-origins:
-    - https://your-domain.com
-  success-path: /auth/success
-  default-redirect-origin: https://your-domain.com
