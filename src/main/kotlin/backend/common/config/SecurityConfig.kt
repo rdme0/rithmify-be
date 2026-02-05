@@ -1,6 +1,7 @@
 package backend.common.config
 
-import backend.auth.service.CustomOAuth2UserService
+// OAuth2 소셜로그인 기능은 MVP에 포함되지 않음
+// import backend.auth.service.CustomOAuth2UserService
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -15,7 +16,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 @EnableConfigurationProperties(UriSecurityConfig::class)
 class SecurityConfig(
-        private val customOAuth2UserService: CustomOAuth2UserService,
+        // OAuth2 소셜로그인 기능은 MVP에 포함되지 않음
+        // private val customOAuth2UserService: CustomOAuth2UserService,
         private val uriSecurityConfig: UriSecurityConfig
 ) {
 
@@ -26,18 +28,20 @@ class SecurityConfig(
                 .cors { it.configurationSource(corsConfigurationSource()) }
                 .authorizeHttpRequests { auth ->
                     auth.requestMatchers("/api/spotify/**").permitAll()
-                    auth.requestMatchers("/login/**", "/oauth2/**").permitAll()
+                    // OAuth2 로그인 경로는 현재 사용하지 않음
+                    // auth.requestMatchers("/login/**", "/oauth2/**").permitAll()
                     auth.anyRequest().permitAll()
                 }
-                .oauth2Login { oauth2 ->
-                    oauth2.userInfoEndpoint { userInfo ->
-                        userInfo.userService(customOAuth2UserService)
-                    }
-                    oauth2.defaultSuccessUrl(
-                            uriSecurityConfig.defaultRedirectOrigin + uriSecurityConfig.successPath,
-                            true
-                    )
-                }
+        // OAuth2 소셜로그인 기능은 MVP에 포함되지 않음
+        // .oauth2Login { oauth2 ->
+        //     oauth2.userInfoEndpoint { userInfo ->
+        //         userInfo.userService(customOAuth2UserService)
+        //     }
+        //     oauth2.defaultSuccessUrl(
+        //             uriSecurityConfig.defaultRedirectOrigin + uriSecurityConfig.successPath,
+        //             true
+        //     )
+        // }
 
         return http.build()
     }
