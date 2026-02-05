@@ -7,7 +7,7 @@ plugins {
 
 group = 'rdme0'
 version = '0.0.1-SNAPSHOT'
-description = 'tierify-be'
+description = 'rithmify-be'
 
 java {
     toolchain {

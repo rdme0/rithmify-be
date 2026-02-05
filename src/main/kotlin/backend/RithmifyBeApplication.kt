@@ -10,8 +10,8 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport
 @EnableSpringDataWebSupport(
         pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO
 )
-class TierifyBeApplication
+class RithmifyBeApplication
 
 fun main(args: Array<String>) {
-    runApplication<TierifyBeApplication>(*args)
+    runApplication<RithmifyBeApplication>(*args)
 }

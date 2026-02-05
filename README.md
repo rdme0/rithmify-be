@@ -1,6 +1,6 @@
-# Tierify - Spotify Tier Maker Backend
+# Rithmify - Spotify Tier Maker Backend
 
-**Tierify**는 Spotify의 트랙, 앨범, 아티스트 정보를 활용하여 나만의 티어표(Tier List)를 만들 수 있는 서비스의 백엔드입니다.
+**Rithmify**는 Spotify의 트랙, 앨범, 아티스트 정보를 활용하여 나만의 티어표(Tier List)를 만들 수 있는 서비스의 백엔드입니다.
 **Spring Boot (MVC)**와 **Kotlin**을 기반으로 하며, **가상 스레드(Virtual Threads)**와 **코루틴(Coroutines)**을 적극
 활용하여 고성능 처리를 지향합니다.
 
@@ -95,7 +95,7 @@ cp .env.example .env
 SPRING_PROFILES_ACTIVE=dev
 
 # Development Environment
-DEV_DATABASE_URL=jdbc:postgresql://localhost:5432/tierify
+DEV_DATABASE_URL=jdbc:postgresql://localhost:5432/Rithmify
 DEV_DATABASE_USERNAME=postgres
 DEV_DATABASE_PASSWORD=dev_password
 DEV_REDIS_HOST=localhost
@@ -103,8 +103,8 @@ DEV_REDIS_PORT=6379
 DEV_OAUTH2_REDIRECT_URI=http://localhost:8080/login/oauth2/code/spotify
 
 # Production Environment
-PROD_DATABASE_URL=jdbc:postgresql://prod-host:5432/tierify_prod
-PROD_DATABASE_USERNAME=tierify_user
+PROD_DATABASE_URL=jdbc:postgresql://prod-host:5432/Rithmify_prod
+PROD_DATABASE_USERNAME=Rithmify_user
 PROD_DATABASE_PASSWORD=prod_password
 PROD_REDIS_HOST=prod-redis-host
 PROD_REDIS_PORT=6379
