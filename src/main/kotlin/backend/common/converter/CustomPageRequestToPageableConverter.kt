@@ -12,16 +12,16 @@ class CustomPageRequestToPageableConverter(
 ) : Converter<CustomPageRequest, Pageable> {
 
     override fun convert(request: CustomPageRequest): Pageable {
-        val page = (request.page ?: 1) - 1
+        val page = request.page ?: 0
 
         if (page < 0) {
-            throw InvalidPageableFieldException("page", "page는 1보다 작을 수 없습니다.")
+            throw InvalidPageableFieldException("page", page.toString())
         }
 
         val size = request.size ?: 20
 
         if (size !in 1..100) {
-            throw InvalidPageableFieldException("size", "size는 1 ~ 100 사이여야 합니다.")
+            throw InvalidPageableFieldException("size", size.toString())
         }
 
         val directionString = request.direction ?: "asc"
