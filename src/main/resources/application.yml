@@ -25,8 +25,14 @@ spring:
   data:
     redis:
       database: 1
+      repositories:
+        enabled: false
 
 server.port: 10001
+
+rithmify:
+  db:
+    enabled: false
 
 spotify:
   api:

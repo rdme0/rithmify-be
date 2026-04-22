@@ -17,11 +17,13 @@ import backend.tierlist.repository.TierGroupRepository
 import backend.tierlist.repository.TierItemRepository
 import backend.tierlist.repository.TierListRepository
 import java.util.*
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
+@ConditionalOnProperty(name = ["rithmify.db.enabled"], havingValue = "true")
 @Transactional(readOnly = true)
 class TierListService(
         private val tierListRepository: TierListRepository,
