@@ -10,7 +10,7 @@ Spotify 데이터를 기반으로 음악 티어메이커를 만들기 위한 Spr
 | --- | --- |
 | Language | Kotlin 2.2.21, JDK 21 |
 | Framework | Spring Boot 3.5.10, Spring MVC |
-| Data | Spring Data JPA, PostgreSQL |
+| Data | Spring Data JPA, PostgreSQL (현재 비활성화) |
 | Cache | Redis |
 | External API | Spotify Web API |
 | HTTP Client | WebClient, Kotlin Coroutines |
@@ -43,7 +43,6 @@ src/main/kotlin/backend
 ## 실행 요구사항
 
 - JDK 21
-- PostgreSQL
 - Redis
 - Spotify Developer App의 `client_id`, `client_secret`
 
@@ -68,10 +67,6 @@ cp .env.example .env
 ```dotenv
 SPRING_PROFILES_ACTIVE=dev
 
-DEV_DATABASE_URL=jdbc:postgresql://localhost:5432/rithmify
-DEV_DATABASE_USERNAME=postgres
-DEV_DATABASE_PASSWORD=dev_password
-
 DEV_REDIS_HOST=localhost
 DEV_REDIS_PORT=6379
 
@@ -82,17 +77,16 @@ SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 운영 프로필(`prod`)에서는 다음 값도 필요합니다.
 
 ```dotenv
-PROD_DATABASE_URL=jdbc:postgresql://prod-host:5432/rithmify_prod
-PROD_DATABASE_USERNAME=rithmify_user
-PROD_DATABASE_PASSWORD=secure_prod_password
 PROD_REDIS_HOST=prod-redis-host
 PROD_REDIS_PORT=6379
 PROD_REDIS_PASSWORD=secure_redis_password
 ```
 
+DB 관련 환경 변수는 `.env.example`에 보존되어 있지만 현재 MVP에서는 사용하지 않습니다.
+
 ## 로컬 실행
 
-PostgreSQL과 Redis를 먼저 실행한 뒤 애플리케이션을 시작합니다.
+Redis를 먼저 실행한 뒤 애플리케이션을 시작합니다.
 
 ```powershell
 .\gradlew.bat bootRun
@@ -136,7 +130,7 @@ docker build -t rithmify-be .
 docker run --rm -p 10001:10001 --env-file .env rithmify-be
 ```
 
-Dockerfile은 `SPRING_PROFILES_ACTIVE=prod`를 기본값으로 사용합니다. 로컬 `.env`만으로 컨테이너를 실행하려면 운영용 DB/Redis 환경 변수를 함께 준비하거나 실행 시 프로필을 `dev`로 덮어써야 합니다.
+Dockerfile은 `SPRING_PROFILES_ACTIVE=prod`를 기본값으로 사용합니다. 로컬 `.env`만으로 컨테이너를 실행하려면 운영용 Redis 환경 변수를 함께 준비하거나 실행 시 프로필을 `dev`로 덮어써야 합니다.
 
 ```bash
 docker run --rm -p 10001:10001 --env-file .env -e SPRING_PROFILES_ACTIVE=dev rithmify-be
@@ -291,12 +285,15 @@ GET /api/spotify/albums/{albumId}/tracks
 
 다음 기능은 코드 일부가 존재하지만 현재 HTTP API로 노출되어 있지 않습니다.
 
+- PostgreSQL/JPA 기반 DB 기능
 - `/api/tier-lists` 티어리스트 생성/조회 컨트롤러
 - Spotify OAuth2 로그인 플로우
 
 관련 코드는 유지되어 있으므로 기능을 다시 열 때는 다음 파일을 우선 확인하면 됩니다.
 
+- `src/main/kotlin/backend/RithmifyBeApplication.kt`
 - `src/main/kotlin/backend/tierlist/controller/TierListController.kt`
+- `src/main/kotlin/backend/tierlist/service/TierListService.kt`
 - `src/main/kotlin/backend/common/config/SecurityConfig.kt`
 - `src/main/kotlin/backend/auth/service/CustomOAuth2UserService.kt`
 

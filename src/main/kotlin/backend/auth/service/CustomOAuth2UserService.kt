@@ -4,6 +4,7 @@ import backend.auth.domain.Member
 import backend.auth.domain.Role
 import backend.auth.repository.MemberRepository
 import backend.common.exception.server.InternalServerException
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.user.OAuth2User
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Deprecated("OAuth2 소셜로그인 기능은 MVP에 포함되지 않습니다.", ReplaceWith(""))
 @Service
+@ConditionalOnProperty(name = ["rithmify.db.enabled"], havingValue = "true")
 class CustomOAuth2UserService(private val memberRepository: MemberRepository) :
         DefaultOAuth2UserService() {
 

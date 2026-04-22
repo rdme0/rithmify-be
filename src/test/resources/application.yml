@@ -6,3 +6,30 @@ spring:
           spotify:
             client-id: "test-client-id"
             client-secret: "test-client-secret"
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: user-read-private,user-read-email,user-top-read
+        provider:
+          spotify:
+            authorization-uri: https://accounts.spotify.com/authorize
+            token-uri: https://accounts.spotify.com/api/token
+            user-info-uri: https://api.spotify.com/v1/me
+            user-name-attribute: id
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+uri:
+  allowed-front-end-origins:
+    - http://localhost:*
+  success-path: /auth/success
+  default-redirect-origin: http://localhost:3000
+
+spotify:
+  api:
+    base-url: https://api.spotify.com/v1
+  security:
+    token-url: https://accounts.spotify.com/api/token
+    client-id: test-client-id
+    client-secret: test-client-secret
